@@ -409,8 +409,16 @@ function(__arduino_find_board_details MODE)
 
     foreach (_property IN LISTS _property_list)
         if (_property MATCHES "([^=]+)=(.*)")
-            __arduino_property_to_variable("${CMAKE_MATCH_1}" _property ${_property_mode})
-            set("${_property}" "${CMAKE_MATCH_2}" PARENT_SCOPE)
+            set(_property_name  "${CMAKE_MATCH_1}")
+            set(_property_value "${CMAKE_MATCH_2}")
+
+            __arduino_property_to_variable("${_property_name}" _variable ${_property_mode})
+
+            if (_variable MATCHES "_PATH$")
+                cmake_path(CONVERT "${_property_value}" TO_CMAKE_PATH_LIST _property_value)
+            endif()
+
+            set("${_variable}" "${_property_value}" PARENT_SCOPE)
         elseif (_property)
             message(FATAL_ERROR "Unexpected output from arduino-cli tool: ${_property}")
             return()
