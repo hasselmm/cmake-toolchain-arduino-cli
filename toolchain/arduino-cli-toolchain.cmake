@@ -712,6 +712,9 @@ __arduino_run_hooks("recipe.hooks.prebuild")
 list(APPEND CMAKE_TRY_COMPILE_PLATFORM_VARIABLES ARDUINO_BOARD) # <----------------------------- configure try_compile()
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY) #                     try_compile() doesn't provide setup() and loop()
 
+cmake_path(GET CMAKE_CURRENT_LIST_FILE PARENT_PATH ARDUINO_TOOLCHAIN_DIR) # <---------- really use ".o" for object files
+set(CMAKE_USER_MAKE_RULES_OVERRIDE "${ARDUINO_TOOLCHAIN_DIR}/Arduino/RulesOverride.cmake")
+
 if (CMAKE_PARENT_LIST_FILE MATCHES "CMakeSystem\\.cmake$") # <----------------- define additonal API, additional targets
     __arduino_add_arduino_core_library()
 

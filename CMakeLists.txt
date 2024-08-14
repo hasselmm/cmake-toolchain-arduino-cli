@@ -5,6 +5,7 @@ enable_testing()
 add_custom_target(
     toolchain SOURCES
     toolchain/arduino-cli-toolchain.cmake
+    toolchain/Arduino/RulesOverride.cmake
     README.md
     LICENSE
 )
