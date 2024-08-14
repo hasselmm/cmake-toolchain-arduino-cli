@@ -90,7 +90,7 @@ function(arduino_get_property NAME OUTPUT_VARIABLE)
     endif()
 
     set(_property_value "${${_property}}")
-    set(_expand_args _property_value) # <------------------------------------ expand remaining placeholders if requested
+    set(_expand_args "${NAME}" _property_value) # <-------------------------- expand remaining placeholders if requested
 
     if (_GET_PROPERTY_CONTEXT)
         list(APPEND _expand_args CONTEXT "${_GET_PROPERTY_CONTEXT}")
@@ -165,7 +165,7 @@ endfunction()
 # ----------------------------------------------------------------------------------------------------------------------
 # Expands the Arduino build property references in `VARIABLE_NAME`.
 # ----------------------------------------------------------------------------------------------------------------------
-function(__arduino_expand_properties VARIABLE_NAME)
+function(__arduino_expand_properties PROPERTY_NAME VARIABLE_NAME)
     cmake_parse_arguments(_EXPAND_PROPERTIES "" "CONTEXT;TARGET" "" ${ARGN})
     __arduino_reject_unparsed_arguments(_EXPAND_PROPERTIES)
 
@@ -173,13 +173,19 @@ function(__arduino_expand_properties VARIABLE_NAME)
     cmake_path(NATIVE_PATH CMAKE_SOURCE_DIR NORMALIZE _source_dirpath)  # FIXME initialize from target's SOURCE_DIR
     set(_target_output  "${CMAKE_PROJECT_NAME}")                        # FIXME initialize from target's OUTPUT_NAME
 
+    if (PROPERTY_NAME STREQUAL "recipe.ar.pattern") # <---------------------- this property needs some custom expansions
+        set(_archive_filepath "<TARGET>")
+        set(_object_file "<LINK_FLAGS> <OBJECTS>")
+    else()
+        set(_archive_filepath "") # FIXME initialize from _binary_dirpath and _archive_filepath
+        set(_object_file "<OBJECT>")
+    endif()
+
     set(_archive_filename "") # FIXME initialize from target's OUTPUT_NAME and SUFFIX
-    set(_archive_filepath "") # FIXME initialize from _binary_dirpath and _archive_filepath
 
     if (_EXPAND_PROPERTIES_TARGET)
         message(WARNING "TARGET specific property expansions are not supported yet") # FIXME implement this
     endif()
-
 
     if (ARDUINO_UPLOAD_VERBOSE) # <--------------------------------------- prepare the context property {upload.verbose}
        set(_upload_verbose_property "upload.params.quiet")
@@ -227,7 +233,7 @@ function(__arduino_expand_properties VARIABLE_NAME)
             elseif (_property STREQUAL "source_file")
                 set(_value "<SOURCE>")
             elseif (_property STREQUAL "object_file")
-                set(_value "<OBJECT>")
+                set(_value "${_object_file}")
             elseif (_property STREQUAL "object_files")
                 set(_value "<OBJECTS> <LINK_LIBRARIES>")
             elseif (_property STREQUAL "archive_file")
@@ -296,7 +302,7 @@ function(__arduino_get_hook_command HOOK_NAME INDEX OUTPUT_VARIABLE)
 
     if (DEFINED "${_variable}") # <------------------------------------------- process the hook's shell command if found
         set(_command "${${_variable}}")
-        __arduino_expand_properties(_command)
+        __arduino_expand_properties("${_hook}" _command)
         __arduino_make_command_list("${_command}" _command_list)
     endif()
 
