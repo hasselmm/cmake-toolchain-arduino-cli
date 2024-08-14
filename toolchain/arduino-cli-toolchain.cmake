@@ -67,7 +67,7 @@ endfunction()
 # Pass the `UNEXPANDED` option to retrieve values without placeholders being expanded.
 # ----------------------------------------------------------------------------------------------------------------------
 function(arduino_get_property NAME OUTPUT_VARIABLE)
-    cmake_parse_arguments(_GET_PROPERTY "FULLY_EXPANDED;REQUIRED;UNEXPANDED" "" "" ${ARGN})
+    cmake_parse_arguments(_GET_PROPERTY "CACHED;FULLY_EXPANDED;REQUIRED;UNEXPANDED" "" "" ${ARGN})
     __arduino_reject_unparsed_arguments(_GET_PROPERTY)
 
     if (NOT NAME)
@@ -90,6 +90,18 @@ function(arduino_get_property NAME OUTPUT_VARIABLE)
 
     if (_GET_PROPERTY_FULLY_EXPANDED)
         __arduino_expand_properties(_property_value)
+    endif()
+
+    if (_GET_PROPERTY_CACHED)
+        if ("${OUTPUT_VARIABLE}" MATCHES "_PATH$")
+            set(_type "PATH")
+        else()
+            set(_type "STRING")
+        endif()
+
+        set("${OUTPUT_VARIABLE}"
+            "${_property_value}" CACHE "${_type}"
+            "Initialized from Arduino property ${NAME}")
     endif()
 
     set("${OUTPUT_VARIABLE}" "${_property_value}" PARENT_SCOPE)
@@ -608,13 +620,14 @@ set(CMAKE_SYSTEM_NAME       "Arduino") # <--------------------------------------
 set(CMAKE_SYSTEM_VERSION    "${ARDUINO_VERSION}")
 set(CMAKE_SYSTEM_PROCESSOR  "${ARDUINO_PROPERTIES_EXPANDED_BUILD_ARCH}")
 
-arduino_get_property("recipe.S.o.pattern"         CMAKE_ASM_COMPILE_OBJECT        FULLY_EXPANDED) # <-- find build rules
-arduino_get_property("recipe.c.o.pattern"         CMAKE_C_COMPILE_OBJECT          FULLY_EXPANDED)
-arduino_get_property("recipe.c.combine.pattern"   CMAKE_C_LINK_EXECUTABLE         FULLY_EXPANDED)
-arduino_get_property("recipe.ar.pattern"          CMAKE_C_CREATE_STATIC_LIBRARY   FULLY_EXPANDED)
-arduino_get_property("recipe.cpp.o.pattern"       CMAKE_CXX_COMPILE_OBJECT        FULLY_EXPANDED)
-arduino_get_property("recipe.c.combine.pattern"   CMAKE_CXX_LINK_EXECUTABLE       FULLY_EXPANDED)
-arduino_get_property("recipe.ar.pattern"          CMAKE_CXX_CREATE_STATIC_LIBRARY FULLY_EXPANDED)
+# <---------------------------------------------------------------------------------------------------- find build rules
+arduino_get_property("recipe.S.o.pattern"         CMAKE_ASM_COMPILE_OBJECT        FULLY_EXPANDED CACHED)
+arduino_get_property("recipe.c.o.pattern"         CMAKE_C_COMPILE_OBJECT          FULLY_EXPANDED CACHED)
+arduino_get_property("recipe.c.combine.pattern"   CMAKE_C_LINK_EXECUTABLE         FULLY_EXPANDED CACHED)
+arduino_get_property("recipe.ar.pattern"          CMAKE_C_CREATE_STATIC_LIBRARY   FULLY_EXPANDED CACHED)
+arduino_get_property("recipe.cpp.o.pattern"       CMAKE_CXX_COMPILE_OBJECT        FULLY_EXPANDED CACHED)
+arduino_get_property("recipe.c.combine.pattern"   CMAKE_CXX_LINK_EXECUTABLE       FULLY_EXPANDED CACHED)
+arduino_get_property("recipe.ar.pattern"          CMAKE_CXX_CREATE_STATIC_LIBRARY FULLY_EXPANDED CACHED)
 
 find_program( # <------------------------------------------------------------------------------------ find the compilers
     "CMAKE_C_COMPILER"
