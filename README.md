@@ -1,6 +1,6 @@
 # CMake toolchain for Arduino CLI
 
-How about building [Arduino](https://arduino.cc/) projects using [CMake](https://cmake.org)?
+How about using [CMake](https://cmake.org) to build your [Arduino](https://arduino.cc/) projects?
 
 How about using `CMakeLists.txt` files as simple as this?
 
