@@ -67,32 +67,46 @@ endfunction()
 # Pass the `UNEXPANDED` option to retrieve values without placeholders being expanded.
 # ----------------------------------------------------------------------------------------------------------------------
 function(arduino_get_property NAME OUTPUT_VARIABLE)
-    cmake_parse_arguments(_GET_PROPERTY "CACHED;FULLY_EXPANDED;REQUIRED;UNEXPANDED" "" "" ${ARGN})
-    __arduino_reject_unparsed_arguments(_GET_PROPERTY)
-
     if (NOT NAME)
         message(FATAL_ERROR "The property name must not be empty!")
         return()
     endif()
 
-    if (_GET_PROPERTY_UNEXPANDED)
+    set(options CACHED FULLY_EXPANDED REQUIRED UNEXPANDED)
+    set(single_values CONTEXT TARGET)
+
+    cmake_parse_arguments(_GET_PROPERTY "${options}" "${single_values}" "" ${ARGN})
+    __arduino_reject_unparsed_arguments(_GET_PROPERTY)
+
+    if (_GET_PROPERTY_UNEXPANDED) # <-------------------------------------------------- select namespace of the variable
         __arduino_property_to_variable("${NAME}" _property UNEXPANDED)
     else()
         __arduino_property_to_variable("${NAME}" _property)
     endif()
 
-    if (_GET_PROPERTY_REQUIRED AND NOT DEFINED "${_property}")
+    if (_GET_PROPERTY_REQUIRED AND NOT DEFINED "${_property}") # <-------------------------- enforce required properties
         message(FATAL_ERROR "Could not find required board property: ${NAME}")
         return()
     endif()
 
     set(_property_value "${${_property}}")
+    set(_expand_args _property_value) # <------------------------------------ expand remaining placeholders if requested
 
-    if (_GET_PROPERTY_FULLY_EXPANDED)
-        __arduino_expand_properties(_property_value)
+    if (_GET_PROPERTY_CONTEXT)
+        list(APPEND _expand_args CONTEXT "${_GET_PROPERTY_CONTEXT}")
+        set(_GET_PROPERTY_FULLY_EXPANDED YES)
     endif()
 
-    if (_GET_PROPERTY_CACHED)
+    if (_GET_PROPERTY_TARGET)
+        list(APPEND _expand_args TARGET "${_GET_PROPERTY_TARGET}")
+        set(_GET_PROPERTY_FULLY_EXPANDED YES)
+    endif()
+
+    if (_GET_PROPERTY_FULLY_EXPANDED)
+        __arduino_expand_properties(${_expand_args})
+    endif()
+
+    if (_GET_PROPERTY_CACHED) # <------------------------------------------------------- cache the variable if requested
         if ("${OUTPUT_VARIABLE}" MATCHES "_PATH$")
             set(_type "PATH")
         else()
@@ -524,8 +538,7 @@ endfunction()
 # ----------------------------------------------------------------------------------------------------------------------
 function(__arduino_add_firmware_target TARGET OUTPUT_VARIABLE)
     __arduino_generate_hook_commands("recipe.objcopy.hex" _objcopy_commands) # FIXME also pass TARGET
-    arduino_get_property("recipe.output.tmp_file" _firmware_filename REQUIRED)
-    __arduino_expand_properties(_firmware_filename TARGET "${TARGET}")
+    arduino_get_property("recipe.output.tmp_file" _firmware_filename REQUIRED TARGET "${TARGET}")
 
     add_custom_command(
         OUTPUT "${_firmware_filename}" DEPENDS "${TARGET}"
@@ -544,8 +557,10 @@ endfunction()
 function(__arduino_add_upload_target TARGET UPLOAD_TARGET FIRMWARE_FILENAME UPLOAD_TOOL)
     arduino_get_property("${UPLOAD_TOOL}" _tool_name)
 
-    arduino_get_property("tools.${_tool_name}.upload.pattern" _command)
-    __arduino_expand_properties(_command CONTEXT "tools.${_tool_name}" TARGET "${TARGET}")
+    arduino_get_property(
+        "tools.${_tool_name}.upload.pattern" _command
+        CONTEXT "tools.${_tool_name}" TARGET "${TARGET}")
+
     __arduino_make_command_list("${_command}" _command_list)
 
     add_custom_target(
