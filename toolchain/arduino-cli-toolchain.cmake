@@ -369,6 +369,37 @@ function(__arduino_make_command_list SHELL_QUOTED OUTPUT_VARIABLE)
     set("${OUTPUT_VARIABLE}" ${_command_list} PARENT_SCOPE)
 endfunction()
 
+# ----------------------------------------------------------------------------------------------------------------------
+# Initializes `VARIABLE` from `DEFAULT_VALUE` if that variable is not yet set. Optionally pairs
+# of `if()` expressions and alternate default values can be passed for platform specific default.
+# ----------------------------------------------------------------------------------------------------------------------
+function(__arduino_set_default VARIABLE DEFAULT_VALUE)
+    if ("${VARIABLE}") # <------------------------------------------------- nothing to do, if the variable is already set
+        return()
+    endif()
+
+    if (ARGN) # <---------------------------------------------------------------- parse the list of conditional defaults
+        list(LENGTH ARGN _condition_count)
+
+        foreach(_value_index RANGE 1 ${_condition_count} 2)
+            math(EXPR _condition_index "${_value_index} - 1")
+            list(GET ARGN ${_condition_index} _condition)
+
+            cmake_language( # <----------------------------------------------- check if this conditional default applies
+                EVAL CODE "if (${_condition})
+                    set(_accepted YES)
+                endif()")
+
+            if (_accepted)
+                list(GET ARGN ${_value_index} DEFAULT_VALUE)
+                break()
+            endif()
+        endforeach()
+    endif()
+
+    set("${VARIABLE}" "${DEFAULT_VALUE}" PARENT_SCOPE)
+endfunction()
+
 # ======================================================================================================================
 # Internal utility functions that find Arduino components and configurations.
 # ======================================================================================================================
@@ -666,33 +697,6 @@ if (CMAKE_PARENT_LIST_FILE MATCHES "CMakeSystem\\.cmake$") # <----------------- 
     cmake_language( # <------------------------------------------------------------------------ finalize, polish targets
         DEFER CALL cmake_language
         EVAL CODE "__arduino_toolchain_finalize(\"\${CMAKE_SOURCE_DIR}\")")
-
-    function(__arduino_set_default VARIABLE DEFAULT_VALUE)
-        if ("${VARIABLE}")
-            return()
-        endif()
-
-        if (ARGN)
-            list(LENGTH ARGN _condition_count)
-
-            foreach(_value_index RANGE 1 ${_condition_count} 2)
-                math(EXPR _condition_index "${_value_index} - 1")
-                list(GET ARGN ${_condition_index} _condition)
-
-                cmake_language(
-                    EVAL CODE "if (${_condition})
-                        set(_accepted YES)
-                    endif()")
-
-                if (_accepted)
-                    list(GET ARGN ${_value_index} DEFAULT_VALUE)
-                    break()
-                endif()
-            endforeach()
-        endif()
-
-        set("${VARIABLE}" "${DEFAULT_VALUE}" PARENT_SCOPE)
-    endfunction()
 
     __arduino_set_default(ARDUINO_UPLOAD_VERBOSE NO)# <------------ set defaults for the toolchain's optional parameters
     __arduino_set_default(ARDUINO_UPLOAD_SERIAL_PORT                "COM3" "UNIX" "/dev/ttyacm0")
