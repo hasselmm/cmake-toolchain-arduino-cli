@@ -374,6 +374,7 @@ function(__arduino_make_command_list SHELL_QUOTED OUTPUT_VARIABLE)
     set(_tail     "[ \t]+(.*)|$")   # the next argument separating space and the remaining text
     set(_argument "${_quoted}|${_literal}")
 
+    set(_command "${SHELL_QUOTED}")
     set(_command_list)
 
     while (_command AND _command MATCHES "^(${_argument})(${_tail})") # <------------------------ split the command line
