@@ -593,7 +593,9 @@ function(__arduino_add_import_library NAME SOURCE_DIR) # [SOURCE_DIR...]
     list(LENGTH _library_sources _source_file_count)
     message(STATUS "${_source_file_count} source files found for ${_target}")
 
-    configure_file("${_library_template}" "${_library_source_dir}/CMakeLists.txt") # <-------- build library out of tree
+    list(JOIN _library_sources     "\"\n    \"" _quoted_library_sources) # <--------- prepare CMake to build out of tree
+    list(JOIN _library_directories "\"\n    \"" _quoted_library_directories)
+    configure_file("${_library_template}" "${_library_source_dir}/CMakeLists.txt")
 
     add_custom_command(
         OUTPUT "${_library_binary_dir}/CMakeCache.txt"
