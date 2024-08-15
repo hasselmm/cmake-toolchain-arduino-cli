@@ -1,9 +1,11 @@
 if (NOT ARDUINO_CLI_TOOLCHAIN_TESTED_BOARDS)
     set(ARDUINO_CLI_TOOLCHAIN_TESTED_BOARDS
+        ATTinyCore:avr:attinyx7
+        STMicroelectronics:stm32:Nucleo_64:pnum=NUCLEO_F103RB
         arduino:avr:nano
-        #arduino:samd:nano_33_iot
+        arduino:samd:nano_33_iot
         esp32:esp32:nodemcu-32s
-        esp8266:esp8266:nodemcuv2:baud=512000)
+        esp8266:esp8266:nodemcuv2)
 endif()
 
 function(arduino_cli_toolchain_add_test NAME)
