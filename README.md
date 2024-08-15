@@ -19,12 +19,12 @@ file before *(— famous last words)*.
 
 ## Status
 
-[![Arduino AVR](https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ArduinoAVR.yml/badge.svg)](https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ArduinoAVR.yml)
-[![Arduino SAM D](https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ArduinoSAMD.yml/badge.svg)](https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ArduinoSAMD.yml)
-[![ATTiny Core](https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ATTinyCore.yml/badge.svg)](https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ATTinyCore.yml)
-[![ESP32](https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ESP32.yml/badge.svg)](https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ESP32.yml)
-[![ESP8266](https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ESP8266.yml/badge.svg)](https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ESP8266.yml)
-[![STM32 Nucleo 64](https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-STM32.yml/badge.svg)](https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-STM32.yml)
+[![Arduino AVR    ][ArduinoAVR.svg] ][ArduinoAVR.yml]
+[![Arduino SAM D  ][ArduinoSAMD.svg]][ArduinoSAMD.yml]
+[![ATTiny Core    ][ATTinyCore.svg] ][ATTinyCore.yml]
+[![ESP32          ][ESP32.svg]      ][ESP32.yml]
+[![ESP8266        ][ESP8266.svg]    ][ESP8266.yml]
+[![STM32 Nucleo 64][STM32.svg]      ][STM32.yml]
 
 This project is in early development. So far it's a fairly successful proof of concept.
 
@@ -85,3 +85,19 @@ This project would not have been possible without all the previous hard work
 [Arduino-CMake-Toolchain](https://github.com/a9183756-gh/Arduino-CMake-Toolchain).
 I took good inspiration from it, especially when it comes to making CMake's initial
 compiler detection accept Arduinos very special binary layout.
+
+
+
+[ArduinoAVR.svg]:  https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ArduinoAVR.yml/badge.svg
+[ArduinoSAMD.svg]: https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ArduinoSAMD.yml/badge.svg
+[ATTinyCore.svg]:  https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ATTinyCore.yml/badge.svg
+[ESP32.svg]:       https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ESP32.yml/badge.svg
+[ESP8266.svg]:     https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ESP8266.yml/badge.svg
+[STM32.svg]:       https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-STM32.yml/badge.svg
+
+[ArduinoAVR.yml]:  https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ArduinoAVR.yml
+[ArduinoSAMD.yml]: https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ArduinoSAMD.yml
+[ATTinyCore.yml]:  https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ATTinyCore.yml
+[ESP32.yml]:       https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ESP32.yml
+[ESP8266.yml]:     https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ESP8266.yml
+[STM32.yml]:       https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-STM32.yml
