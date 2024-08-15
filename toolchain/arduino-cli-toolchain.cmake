@@ -289,16 +289,26 @@ endfunction()
 # Retrieves the command defined for HOOK at INDEX as COMMAND list for execute_process().
 # ----------------------------------------------------------------------------------------------------------------------
 function(__arduino_get_hook_command HOOK_NAME INDEX OUTPUT_VARIABLE)
-    set(_hook "${HOOK_NAME}.${INDEX}.pattern")
     set(_command_list)
 
-    __arduino_property_to_variable("${_hook}" _variable) # <------------------------- check if there is a hook for INDEX
+    set(_hook_candiates "${HOOK_NAME}.${INDEX}.pattern")
 
-    if (DEFINED "${_variable}") # <------------------------------------------- process the hook's shell command if found
-        set(_command "${${_variable}}")
-        __arduino_expand_properties("${_hook}" _command)
-        __arduino_make_command_list("${_command}" _command_list)
+    if (INDEX LESS 10) # <----------------------------------------------- also try zero padded variants of small indexes
+        # Arduino sorts hook keys lexically, not numerically to resolve hook order.
+        # Therefore small indexes must be padded with zero if more than nine hooks are used.
+        list(APPEND _hook_candiates "${HOOK_NAME}.0${INDEX}.pattern")
     endif()
+
+    foreach(_hook IN LISTS _hook_candiates)
+        __arduino_property_to_variable("${_hook}" _variable)
+
+        if (DEFINED "${_variable}") # <---------------------------------------------- check if there is a hook for INDEX
+            set(_command "${${_variable}}")
+            __arduino_expand_properties("${_hook}" _command)
+            __arduino_make_command_list("${_command}" _command_list)
+            break()
+        endif()
+    endforeach()
 
     set("${OUTPUT_VARIABLE}" ${_command_list} PARENT_SCOPE)
 endfunction()
