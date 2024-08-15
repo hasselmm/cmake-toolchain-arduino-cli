@@ -402,7 +402,7 @@ endfunction()
 # Initializes `VARIABLE` from `DEFAULT_VALUE` if that variable is not yet set. Optionally pairs
 # of `if()` expressions and alternate default values can be passed for platform specific default.
 # ----------------------------------------------------------------------------------------------------------------------
-function(__arduino_set_default VARIABLE DEFAULT_VALUE)
+function(__arduino_set_default VARIABLE DEFAULT_VALUE) # [CONDITION DEFAULT_VALUE ...]
     if ("${VARIABLE}") # <------------------------------------------------- nothing to do, if the variable is already set
         return()
     endif()
@@ -532,7 +532,7 @@ endfunction()
 # Creates an import library for the given Arduino library. To avoid polluting the current project with dozens,
 # if not hundreds of out-of-tree sources the library is built separately and later gets pulled as IMPORT library.
 # ----------------------------------------------------------------------------------------------------------------------
-function(__arduino_add_import_library NAME SOURCE_DIR)
+function(__arduino_add_import_library NAME SOURCE_DIR) # [SOURCE_DIR...]
     set(_libname "Arduino${NAME}")
     set(_target  "Arduino::${NAME}")
 
