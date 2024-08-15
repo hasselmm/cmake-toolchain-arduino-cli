@@ -459,7 +459,7 @@ function(__arduino_find_board_details MODE)
 
     execute_process( # <--------------------------------------------------------------------------- run arduino-cli tool
         COMMAND "${ARDUINO_CLI_EXECUTABLE}"
-            board details --fqbn "${ARDUINO_BOARD}"
+            board details "--fqbn=${ARDUINO_BOARD}"
             --show-properties=${_mode} --format=text
 
         ENCODING UTF-8
@@ -500,7 +500,7 @@ function(__arduino_find_libraries)
 
     execute_process(
         COMMAND "${ARDUINO_CLI_EXECUTABLE}"
-            lib list --fqbn "${ARDUINO_BOARD}" --json
+            lib list "--fqbn=${ARDUINO_BOARD}" --format=json
 
         ENCODING UTF-8
         COMMAND_ERROR_IS_FATAL ANY
