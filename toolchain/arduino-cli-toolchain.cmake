@@ -352,6 +352,7 @@ function(__arduino_run_hooks HOOK_NAME)
                     string(APPEND _error_message "\nThere was no error output.")
                 endif()
 
+                string(APPEND _error_message "\nCOMMAND list: ${_command}")
                 message(FATAL_ERROR "${_error_message}")
             endif()
         endif()
