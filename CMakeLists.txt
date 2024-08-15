@@ -6,7 +6,7 @@ add_custom_target(
     toolchain SOURCES
     toolchain/arduino-cli-toolchain.cmake
     toolchain/Arduino/RulesOverride.cmake
-    .github/workflows/IntegrationTests.yaml
+    .github/workflows/IntegrationTests.yml
     .github/FUNDING.yml
     README.md
     LICENSE
