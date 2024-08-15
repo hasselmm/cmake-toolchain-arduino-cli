@@ -19,7 +19,7 @@ function(arduino_cli_toolchain_add_test NAME)
         file(REMOVE_RECURSE "${_workdir}")
         file(MAKE_DIRECTORY "${_workdir}")
 
-        add_test( # <----------------------------------------------------------------------------- define the test steps
+        add_test( # <---------------------------------------------------------- try an initial configuration of the test
             NAME "${_test_name}/configure"
             WORKING_DIRECTORY "${_workdir}"
 
@@ -29,33 +29,31 @@ function(arduino_cli_toolchain_add_test NAME)
                 -D "ARDUINO_BOARD:STRING=${_board_name}"
                 -D "CMAKE_MESSAGE_LOG_LEVEL=Trace")
 
-        add_test(
+        set_tests_properties(
+            "${_test_name}/configure" PROPERTIES
+            FIXTURES_SETUP "${_board_id}/configure"
+            LABELS "${_board_name}")
+
+        add_test( # <-------------------------------------------------------- verify that CMake can be run a second time
             NAME "${_test_name}/reconfigure"
             WORKING_DIRECTORY "${_workdir}"
             COMMAND "${CMAKE_COMMAND}" -S "${CMAKE_CURRENT_SOURCE_DIR}/${NAME}")
 
-        add_test(
+        set_tests_properties(
+            "${_test_name}/reconfigure" PROPERTIES
+            FIXTURES_REQUIRED "${_board_id}/configure"
+            FIXTURES_SETUP "${_board_id}/reconfigure"
+            LABELS "${_board_name}")
+
+        add_test( # <-------------------------------------------------------------- finally build the Sketch using CMake
             NAME "${_test_name}/build"
             WORKING_DIRECTORY "${_workdir}"
             COMMAND "${CMAKE_COMMAND}" --build ".")
 
-        set_property( # <---------------------------------------------------------------- define dependencies and labels
-            TEST "${_test_name}/configure"
-            PROPERTY LABELS "${_board_name}")
-
-        set_property(
-            TEST "${_test_name}/reconfigure"
-            PROPERTY LABELS "${_board_name}")
-        set_property(
-            TEST "${_test_name}/reconfigure"
-            PROPERTY DEPENDS "${_test_name}/configure")
-
-        set_property(
-            TEST "${_test_name}/build"
-            PROPERTY LABELS "${_board_name}")
-        set_property(
-            TEST "${_test_name}/build"
-            PROPERTY DEPENDS "${_test_name}/reconfigure")
+        set_tests_properties(
+            "${_test_name}/build" PROPERTIES
+            FIXTURES_REQUIRED "${_board_id}/reconfigure"
+            LABELS "${_board_name}")
     endforeach()
 endfunction()
 
