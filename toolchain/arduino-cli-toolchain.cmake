@@ -429,6 +429,18 @@ function(__arduino_set_default VARIABLE DEFAULT_VALUE) # [CONDITION DEFAULT_VALU
     set("${VARIABLE}" "${DEFAULT_VALUE}" PARENT_SCOPE)
 endfunction()
 
+# ----------------------------------------------------------------------------------------------------------------------
+# Defines and describes toolchain file options. They are peristed per cached variables.
+# See __arduino_set_default() for the sophisticated default value mechanism.
+# ----------------------------------------------------------------------------------------------------------------------
+function(__arduino_option TYPE NAME DEFAULT_VALUE) # [CONDITION DEFAULT_VALUE ...] DOCSTRING
+    list(POP_BACK ARGN _docstring)
+    set(_conditional_defaults ${ARGN})
+
+    __arduino_set_default("${NAME}" "${DEFAULT_VALUE}" ${_conditional_defaults})
+    set("${NAME}" "${${NAME}}" CACHE "${TYPE}" "${_docstring}")
+endfunction()
+
 # ======================================================================================================================
 # Internal utility functions that find Arduino components and configurations.
 # ======================================================================================================================
@@ -799,29 +811,42 @@ if (CMAKE_PARENT_LIST_FILE MATCHES "CMakeSystem\\.cmake$") # <----------------- 
         DEFER CALL cmake_language
         EVAL CODE "__arduino_toolchain_finalize(\"\${CMAKE_SOURCE_DIR}\")")
 
-    __arduino_set_default(ARDUINO_UPLOAD_VERBOSE NO)# <------------ set defaults for the toolchain's optional parameters
-    __arduino_set_default(ARDUINO_UPLOAD_SERIAL_PORT                "COM3" "UNIX" "/dev/ttyacm0")
-    __arduino_set_default(ARDUINO_UPLOAD_PROTOCOL                   "serial")
-    __arduino_set_default(ARDUINO_UPLOAD_SPEED                      "115200")
-    __arduino_set_default(ARDUINO_UPLOAD_NETWORK_ADDRESS            "192.168.4.1")
-    __arduino_set_default(ARDUINO_UPLOAD_NETWORK_PORT               "8266"
-                          "ARDUINO_BOARD_CORE MATCHES \"esp32\""    "3232")
-    __arduino_set_default(ARDUINO_UPLOAD_NETWORK_ENDPOINT_UPLOAD    "/pgm/upload")
-    __arduino_set_default(ARDUINO_UPLOAD_NETWORK_ENDPOINT_SYNC      "/pgm/sync")
-    __arduino_set_default(ARDUINO_UPLOAD_NETWORK_ENDPOINT_RESET     "/log/reset")
-    __arduino_set_default(ARDUINO_UPLOAD_NETWORK_SYNC_RETURN        "204:SYNC")
+    __arduino_option( # <--------------------------------------- define and describe the toolchain's optional parameters
+        BOOL ARDUINO_UPLOAD_VERBOSE "${ARDUINO_UPLOAD_VERBOSE}"
+        "Enable verbose logging when uploading compiled sketches.")
 
-    define_property( # <---------------------------------------------- document the toolchain's configuration parameters
+    __arduino_option(
+        STRING ARDUINO_UPLOAD_SERIAL_PORT "COM3" "UNIX" "/dev/ttyacm0"
+        "The serial port to use for uploading compiled sketches.")
+    __arduino_option(
+        STRING ARDUINO_UPLOAD_PROTOCOL "serial"
+        "The protocol to use for uploading compiled sketches.")
+    __arduino_option(
+        STRING ARDUINO_UPLOAD_SPEED "115200"
+        "The transfer speed when uploading Skecompiled sketches.")
+
+    __arduino_option(
+        STRING ARDUINO_UPLOAD_NETWORK_ADDRESS "192.168.4.1"
+        "The host address for uploading compiled sketches via Arduino OTA.")
+    __arduino_option(
+        STRING ARDUINO_UPLOAD_NETWORK_PORT "8266" "ARDUINO_BOARD_CORE MATCHES \"esp32\"" "3232"
+        "The network port for uploading compiled sketches via Arduino OTA.")
+
+    __arduino_option(
+        STRING ARDUINO_UPLOAD_NETWORK_ENDPOINT_UPLOAD "/pgm/upload"
+        "The upload endpoint's path of the Arduino OTA service.")
+    __arduino_option(
+        STRING ARDUINO_UPLOAD_NETWORK_ENDPOINT_SYNC "/pgm/sync"
+        "The sync endpoint's path of the Arduino OTA service.")
+    __arduino_option(
+        STRING ARDUINO_UPLOAD_NETWORK_ENDPOINT_RESET "/log/reset"
+        "The reset endpoint's path of the Arduino OTA service.")
+    __arduino_option(
+        STRING ARDUINO_UPLOAD_NETWORK_SYNC_RETURN "204:SYNC"
+        "The additional sync parameters of the Arduino OTA service.")
+
+    define_property( # <-------------------------------------------------- document the toolchain's mandatory parameters
         CACHED_VARIABLE PROPERTY ARDUINO_BOARD BRIEF_DOCS
         "The FQBN of the Arduino device for which this project shall be built."
         "See https://arduino.github.io/arduino-cli/1.0/FAQ/#whats-the-fqbn-string for details.")
-
-    set(ARDUINO_UPLOAD_SERIAL_PORT "${ARDUINO_UPLOAD_SERIAL_PORT}"
-        CACHE STRING "The serial port to use for uploading compiled sketches.")
-    set(ARDUINO_UPLOAD_NETWORK_ADDRESS "${ARDUINO_UPLOAD_NETWORK_ADDRESS}"
-        CACHE STRING "The host address for uploading compiled sketches via ArduinoOTA.")
-    set(ARDUINO_UPLOAD_NETWORK_PORT "${ARDUINO_UPLOAD_NETWORK_PORT}"
-        CACHE STRING "The network port for uploading compiled sketches via ArduinoOTA.")
-    set(ARDUINO_UPLOAD_VERBOSE "${ARDUINO_UPLOAD_VERBOSE}"
-        CACHE BOOL "Enable verbose logging when uploading compiled sketches.")
 endif()
