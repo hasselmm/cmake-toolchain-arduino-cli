@@ -1,8 +1,10 @@
-set(ARDUINO_CLI_TOOLCHAIN_TESTED_BOARDS
-    arduino:avr:nano
-    arduino:avr:unowifi
-    esp32:esp32:nodemcu-32s
-    esp8266:esp8266:nodemcuv2:baud=512000)
+if (NOT ARDUINO_CLI_TOOLCHAIN_TESTED_BOARDS)
+    set(ARDUINO_CLI_TOOLCHAIN_TESTED_BOARDS
+        arduino:avr:nano
+        #arduino:samd:nano_33_iot
+        esp32:esp32:nodemcu-32s
+        esp8266:esp8266:nodemcuv2:baud=512000)
+endif()
 
 function(arduino_cli_toolchain_add_test NAME)
     add_custom_target("${NAME}" SOURCES "${NAME}/CMakeLists.txt")
@@ -17,7 +19,7 @@ function(arduino_cli_toolchain_add_test NAME)
         file(REMOVE_RECURSE "${_workdir}")
         file(MAKE_DIRECTORY "${_workdir}")
 
-        add_test(
+        add_test( # <----------------------------------------------------------------------------- define the test steps
             NAME "${_test_name}/configure"
             WORKING_DIRECTORY "${_workdir}"
 
@@ -37,7 +39,7 @@ function(arduino_cli_toolchain_add_test NAME)
             WORKING_DIRECTORY "${_workdir}"
             COMMAND "${CMAKE_COMMAND}" --build ".")
 
-        set_property(
+        set_property( # <---------------------------------------------------------------- define dependencies and labels
             TEST "${_test_name}/configure"
             PROPERTY LABELS "${_board_name}")
 
