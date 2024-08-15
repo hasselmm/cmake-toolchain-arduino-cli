@@ -191,7 +191,12 @@ function(__arduino_expand_properties PROPERTY_NAME VARIABLE_NAME)
     set(_archive_filename "") # FIXME initialize from target's OUTPUT_NAME and SUFFIX
 
     if (_EXPAND_PROPERTIES_TARGET)
-        message(WARNING "TARGET specific property expansions are not supported yet") # FIXME implement this
+        get_property(_warning_shown GLOBAL PROPERTY __ARDUINO_CLI_EXPAND_TARGET_WARNING_SHOWN)
+
+        if (NOT _warning_shown)
+            message(WARNING "TARGET specific property expansions are not supported yet") # FIXME implement this
+            set_property(GLOBAL PROPERTY __ARDUINO_CLI_EXPAND_TARGET_WARNING_SHOWN YES)
+        endif()
     endif()
 
     if (ARDUINO_UPLOAD_VERBOSE) # <--------------------------------------- prepare the context property {upload.verbose}
