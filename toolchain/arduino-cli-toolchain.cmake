@@ -153,13 +153,22 @@ function(__arduino_property_to_variable PROPERTY_NAME OUTPUT_VARIABLE)
     string(REPLACE "." "_" _name "${PROPERTY_NAME}")
     string(TOUPPER "${_name}" _name)
 
-    if (_BOARD_PROPERTY_NAME_UNEXPANDED)
+    if (_BOARD_PROPERTY_NAME_UNEXPANDED) # <---------------------------- choose between expanded and unexpanded property
         string(PREPEND _name ARDUINO_PROPERTIES_UNEXPANDED_)
     else()
         string(PREPEND _name ARDUINO_PROPERTIES_EXPANDED_)
     endif()
 
-    set("${OUTPUT_VARIABLE}" "${_name}" PARENT_SCOPE)
+    string(TOUPPER "${ARDUINO_PROPERTIES_EXPANDED_RUNTIME_OS}" _host_suffix) # <-------- consider host specific override
+    set(_host_variable "${_name}_${_host_suffix}")
+
+    # Must check for empty _host_suffix because it will be empty initially
+    # while filling the alias variables in __arduino_find_board_details().
+    if (_host_suffix AND DEFINED "${_host_variable}")
+        set("${OUTPUT_VARIABLE}" "${_host_variable}" PARENT_SCOPE)
+    else()
+        set("${OUTPUT_VARIABLE}" "${_name}" PARENT_SCOPE)
+    endif()
 endfunction()
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -280,25 +289,10 @@ endfunction()
 # Retrieves the command defined for HOOK at INDEX as COMMAND list for execute_process().
 # ----------------------------------------------------------------------------------------------------------------------
 function(__arduino_get_hook_command HOOK_NAME INDEX OUTPUT_VARIABLE)
-    if (CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux") # <--------- figure out which suffix to use for platform specific hooks
-        set(_host_suffix ".linux")
-    elseif (CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
-        set(_host_suffix ".windows")
-    else()
-        message(
-            WARNING "Unsupported host system: ${CMAKE_HOST_SYSTEM_NAME}."
-            "Platform specific build hooks might get ignored.")
-        set(_host_suffix)
-    endif()
-
     set(_hook "${HOOK_NAME}.${INDEX}.pattern")
     set(_command_list)
 
-    __arduino_property_to_variable("${_hook}${_host_suffix}" _variable) # <---------- check if there is a hook for INDEX
-
-    if (NOT DEFINED "${_variable}")
-        __arduino_property_to_variable("${_hook}" _variable)
-    endif()
+    __arduino_property_to_variable("${_hook}" _variable) # <------------------------- check if there is a hook for INDEX
 
     if (DEFINED "${_variable}") # <------------------------------------------- process the hook's shell command if found
         set(_command "${${_variable}}")
