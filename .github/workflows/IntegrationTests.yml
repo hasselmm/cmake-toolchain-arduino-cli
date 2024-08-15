@@ -36,13 +36,13 @@ jobs:
       - name: Install Ninja
         uses: turtlesec-no/get-ninja@main
 
-      - name: Configure toolchain
+      - name: Configure test suite
         run: |
           mkdir test
           cd test
           cmake ..  -GNinja -DARDUINO_CLI_TOOLCHAIN_TESTED_BOARDS=${{ format('{0}:{1}', inputs.platform, inputs.board) }}
 
-      - name: Test toolchain
+      - name: Run the test suite
         run: |
           cd test
           ctest --build-config Debug -V
