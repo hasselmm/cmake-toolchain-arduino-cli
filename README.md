@@ -17,6 +17,22 @@ API and some pretty straight forward CMake. That's the main principle of this to
 file, and that's what hopefully  makes it more robust than any other Arduino toolchain
 file before *(— famous last words)*.
 
+## Status
+
+[![Integration Tests](https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/IntegrationTests.yaml/badge.svg)](https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/IntegrationTests.yaml)
+
+This project is in early development. So far it's a fairly successful proof of concept.
+
+- There still are plenty of shorcuts and major FIXME comments in the scipts.
+- The toolchain only has been successfully tested with the Ninja generator so far.
+- CMake's MS-Build generator is known to fail.
+- Most importantly one cannot add libraries yet.
+- Annoyingly one still needs an `#include <Arduino.h>` in the main sketch.
+- Many more problems, I guess...
+
+Anyway, if you got some spare time, feel free to try out, to test, to give feedback,
+to contribute.
+
 ## Usage
 ### General
 

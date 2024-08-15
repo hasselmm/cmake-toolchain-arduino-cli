@@ -1,0 +1,58 @@
+name: Integration Tests
+on: [push, pull_request]
+
+jobs:
+  testing:
+
+    strategy:
+      matrix:
+        platform:
+          - arduino:avr
+          #- arduino:samd
+          - esp8266:esp8266
+          - esp32:esp32
+
+        include:
+          - platform: arduino:avr
+            fqbn:     arduino:avr:nano
+          # - platform: arduino:samd
+          #   fqbn:     arduino:samd:nano_33_iot
+          - platform: esp8266:esp8266
+            fqbn:     esp8266:esp8266:nodemcuv2
+          - platform: esp32:esp32
+            fqbn:     esp32:esp32:nodemcu-32s
+
+      fail-fast: false
+
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Arduino CLI
+        uses: arduino/setup-arduino-cli@v2
+
+      - name: Install platform
+        run: |
+          arduino-cli config init
+          arduino-cli config add board_manager.additional_urls https://arduino.esp8266.com/stable/package_esp8266com_index.json
+          arduino-cli config add board_manager.additional_urls https://github.com/stm32duino/BoardManagerFiles/raw/main/package_stmicroelectronics_index.json
+          arduino-cli config dump
+
+          arduino-cli core update-index
+          arduino-cli core install ${{ matrix.platform }}
+
+      - name: Install Ninja
+        uses: turtlesec-no/get-ninja@main
+
+      - name: Configure toolchain
+        run: |
+          mkdir test
+          cd test
+          cmake ..  -GNinja -DARDUINO_CLI_TOOLCHAIN_TESTED_BOARDS=${{ matrix.fqbn }}
+
+      - name: Test toolchain
+        run: |
+          cd test
+          ctest --build-config Debug -V
