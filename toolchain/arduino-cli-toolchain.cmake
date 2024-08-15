@@ -254,6 +254,10 @@ function(__arduino_expand_properties PROPERTY_NAME VARIABLE_NAME)
                 set(_value "${_archive_filepath}")
             elseif (_property STREQUAL "serial.port")
                 set(_value "${ARDUINO_UPLOAD_SERIAL_PORT}")
+            elseif (_property STREQUAL "upload.protocol")
+                set(_value "${ARDUINO_UPLOAD_PROTOCOL}")
+            elseif (_property STREQUAL "upload.speed")
+                set(_value "${ARDUINO_UPLOAD_SPEED}")
             elseif (_property STREQUAL "upload.port.address")
                 set(_value "${ARDUINO_UPLOAD_NETWORK_ADDRESS}")
             elseif (_property STREQUAL "upload.port.properties.port")
@@ -797,6 +801,8 @@ if (CMAKE_PARENT_LIST_FILE MATCHES "CMakeSystem\\.cmake$") # <----------------- 
 
     __arduino_set_default(ARDUINO_UPLOAD_VERBOSE NO)# <------------ set defaults for the toolchain's optional parameters
     __arduino_set_default(ARDUINO_UPLOAD_SERIAL_PORT                "COM3" "UNIX" "/dev/ttyacm0")
+    __arduino_set_default(ARDUINO_UPLOAD_PROTOCOL                   "serial")
+    __arduino_set_default(ARDUINO_UPLOAD_SPEED                      "115200")
     __arduino_set_default(ARDUINO_UPLOAD_NETWORK_ADDRESS            "192.168.4.1")
     __arduino_set_default(ARDUINO_UPLOAD_NETWORK_PORT               "8266"
                           "ARDUINO_BOARD_CORE MATCHES \"esp32\""    "3232")
