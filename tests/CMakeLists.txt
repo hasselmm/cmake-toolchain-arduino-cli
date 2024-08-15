@@ -30,7 +30,7 @@ function(arduino_cli_toolchain_add_test NAME)
         add_test(
             NAME "${_test_name}/reconfigure"
             WORKING_DIRECTORY "${_workdir}"
-            COMMAND "${CMAKE_COMMAND}")
+            COMMAND "${CMAKE_COMMAND}" -S "${CMAKE_CURRENT_SOURCE_DIR}/${NAME}")
 
         add_test(
             NAME "${_test_name}/build"
