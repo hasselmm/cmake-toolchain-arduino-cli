@@ -1,0 +1,4 @@
+cmake_minimum_required(VERSION ${CMAKE_VERSION})
+project(${_libname} VERSION 0.1 LANGUAGES ASM C CXX)
+add_library(${_libname} STATIC ${_library_sources})
+target_include_directories(${_libname} PUBLIC ${_library_directories})

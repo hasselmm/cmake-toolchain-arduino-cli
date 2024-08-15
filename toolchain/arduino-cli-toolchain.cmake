@@ -41,18 +41,11 @@ function(arduino_find_libraries NAME)
             endif()
         endif()
 
-        set(_target "Arduino${_name}") # <-------------------------- create an INTERFACE library for the Arduino library
-        add_library("${_target}" INTERFACE)
+        string(JSON  _source_dirpath GET "${_library}"  _source_dir) # <---------- tell CMake about this Arduino library
+        string(JSON        _location GET "${_library}"    _location)
 
-        string(JSON _install_dirpath GET "${_library}" install_dir)
-        string(JSON  _source_dirpath GET "${_library}"  source_dir)
-        string(JSON        _location GET "${_library}"    location)
-
-        target_include_directories("${_target}" INTERFACE "${_source_dirpath}")
-        target_link_libraries("${_target}" INTERFACE Arduino::Core)
-
-        add_library("Arduino::${_name}" ALIAS "${_target}")
-        message(TRACE "Arduino library ${_name} found: version ${_version}, ${_location}")
+        message(STATUS "Arduino library ${_name} found: version ${_version}, ${_location}")
+        __arduino_add_import_library("${_name}" "${_source_dir}")
         list(REMOVE_ITEM _requested_libraries "${_name}")
     endforeach()
 
@@ -521,23 +514,88 @@ endfunction()
 # ======================================================================================================================
 
 # ----------------------------------------------------------------------------------------------------------------------
-# Creates an import library for Android's core library.
+# Creates an import library for the given Arduino library. To avoid polluting the current project with dozens,
+# if not hundreds of out-of-tree sources the library is built separately and later gets pulled as IMPORT library.
+# ----------------------------------------------------------------------------------------------------------------------
+function(__arduino_add_import_library NAME SOURCE_DIR)
+    set(_libname "Arduino${NAME}")
+    set(_target  "Arduino::${NAME}")
+
+    set(_library_binary_dir "${CMAKE_BINARY_DIR}/Arduino/${NAME}")
+    set(_library_source_dir "${CMAKE_BINARY_DIR}/ArduinoFiles/${NAME}")
+    set(_library_template "${ARDUINO_TOOLCHAIN_DIR}/Templates/ArduinoLibraryCMakeLists.txt.in")
+    set(_library_filepath "${_library_binary_dir}/lib${_libname}.a")
+    set(_source_dir_list "${SOURCE_DIR}" ${ARGN})
+
+    set(_library_glob_patterns) # <-------------------------------------------------- collect the library's source files
+
+    foreach(_dirpath IN LISTS _library_directories)
+        list(APPEND _library_glob_patterns
+            "${_dirpath}/*.[cC]"
+            "${_dirpath}/*.[cC][cC]"
+            "${_dirpath}/*.[cC][pP][pP]"
+            "${_dirpath}/*.[cC][xX][xX]"
+            "${_dirpath}/*.[hH]"
+            "${_dirpath}/*.[hH][hH]"
+            "${_dirpath}/*.[hH][pP][pP]"
+            "${_dirpath}/*.[hH][xX][xX]"
+            "${_dirpath}/*.[sS]")
+    endforeach()
+
+    file(GLOB_RECURSE _library_sources ${_library_glob_patterns})
+
+    list(LENGTH _library_sources _source_file_count)
+    message(STATUS "${_source_file_count} source files found for ${_target}")
+
+    configure_file("${_library_template}" "${_library_source_dir}/CMakeLists.txt") # <-------- build library out of tree
+
+    add_custom_command(
+        OUTPUT "${_library_binary_dir}/CMakeCache.txt"
+        DEPENDS "${_library_template}" "${CMAKE_CURRENT_LIST_FILE}"
+        COMMENT "Configuring ${_target} library"
+        WORKING_DIRECTORY "${_library_binary_dir}"
+
+        COMMAND "${CMAKE_COMMAND}"
+            --toolchain "${CMAKE_CURRENT_FUNCTION_LIST_FILE}"
+            -G "${CMAKE_GENERATOR}" -S "${_library_source_dir}"
+            -D "ARDUINO_BOARD:STRING=${ARDUINO_BOARD}")
+
+    add_custom_command(
+        OUTPUT "${_library_filepath}"
+        DEPENDS ${_library_sources} "${_library_binary_dir}/CMakeCache.txt"
+        COMMENT "Building ${_target} library"
+        WORKING_DIRECTORY "${_library_binary_dir}"
+
+        COMMAND "${CMAKE_COMMAND}" --build "${_library_binary_dir}")
+
+    add_custom_target("${_libname}_compile" DEPENDS "${_library_filepath}")
+
+    add_library("${_target}" STATIC IMPORTED) # <-------------------- define import library for the built static library
+    add_dependencies("${_target}" "${_libname}_compile")
+
+    if (NOT NAME STREQUAL "Core")
+        target_link_libraries("${_target}" INTERFACE Arduino::Core)
+    endif()
+
+    target_include_directories("${_target}" INTERFACE ${_source_dir_list})
+    set_property(TARGET "${_target}" PROPERTY IMPORTED_LOCATION "${_library_filepath}")
+    set_property(TARGET "${_target}" PROPERTY SYSTEM NO) # otherwise AVR builds will fail
+
+    # The inlining from unity builds greatly increases the binary size. At least for the ESP8266 this results in
+    # a core too large for empty sketches.  Besides that, some of the Arduino core headers are not self-contained,
+    # resulting in randomly failing unity builds.  Therefore strictly disable unity builds for Arduino libraries.
+    set_property(TARGET "${_target}" PROPERTY UNITY_BUILD NO)
+endfunction()
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Creates an import library for Arduino's core library.
 # ----------------------------------------------------------------------------------------------------------------------
 function(__arduino_add_arduino_core_library)
-    add_library(ArduinoCore INTERFACE)
-
-    target_include_directories(
-        ArduinoCore INTERFACE
+    set(_library_directories
         "${ARDUINO_PROPERTIES_EXPANDED_BUILD_CORE_PATH}"
-        "${ARDUINO_PROPERTIES_EXPANDED_BUILD_SYSTEM_PATH}"
         "${ARDUINO_PROPERTIES_EXPANDED_BUILD_VARIANT_PATH}")
 
-    # FIXME
-    target_link_libraries(
-        ArduinoCore INTERFACE
-        "C:/Users/Mathias/AppData/Local/Temp/arduino/cores/591583add5880351c432cdac5904e8cc/core.a")
-
-    add_library(Arduino::Core ALIAS ArduinoCore)
+    __arduino_add_import_library(Core ${_library_directories})
 endfunction()
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -718,7 +776,9 @@ cmake_path(GET CMAKE_CURRENT_LIST_FILE PARENT_PATH ARDUINO_TOOLCHAIN_DIR) # <---
 set(CMAKE_USER_MAKE_RULES_OVERRIDE "${ARDUINO_TOOLCHAIN_DIR}/Arduino/RulesOverride.cmake")
 
 if (CMAKE_PARENT_LIST_FILE MATCHES "CMakeSystem\\.cmake$") # <----------------- define additonal API, additional targets
-    __arduino_add_arduino_core_library()
+    if (NOT CMAKE_PROJECT_NAME STREQUAL ArduinoCore) # FIXME Rather check for __ARDUINO_CORE_FILEPATH
+        __arduino_add_arduino_core_library()
+    endif()
 
     cmake_language( # <------------------------------------------------------------------------ finalize, polish targets
         DEFER CALL cmake_language
