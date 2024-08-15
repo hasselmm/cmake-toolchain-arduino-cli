@@ -705,7 +705,8 @@ __arduino_run_hooks("recipe.hooks.core.prebuild") # <---------------------------
 __arduino_run_hooks("recipe.hooks.linking.prelink")
 __arduino_run_hooks("recipe.hooks.prebuild")
 
-# FIXME also handle these hooks - maybe invoking them fixes the segment size issue for GlockeDeluxe
+# FIXME also handle these hooks
+# https://arduino.github.io/arduino-cli/1.0/platform-specification/#pre-and-post-build-hooks-since-arduino-ide-165
 # recipe.hooks.core.postbuild
 # recipe.hooks.objcopy.postobjcopy
 # recipe.hooks.sketch.prebuild.pattern
