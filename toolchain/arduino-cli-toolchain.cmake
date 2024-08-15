@@ -506,6 +506,7 @@ function(__arduino_find_board_details MODE)
 
     string(REPLACE ";" "\\;" _properties "${_properties}") # <-------- split text into lines while preserving semicolons
     string(REGEX REPLACE "[ \t\r]*\n" ";" _property_list "${_properties}")
+    set(_variable_dump "")
 
     foreach (_property IN LISTS _property_list) # <--------------------------------- set CMake variables from properties
         if (_property MATCHES "([^=]+)=(.*)")
@@ -519,6 +520,7 @@ function(__arduino_find_board_details MODE)
             endif()
 
             set("${_variable}" "${_property_value}" PARENT_SCOPE)
+            string(APPEND _property_dump "${_variable}=${_property_value}\n")
         elseif (_property)
             message(FATAL_ERROR "Unexpected output from arduino-cli tool: ${_property}")
             return()
@@ -527,6 +529,7 @@ function(__arduino_find_board_details MODE)
 
     list(LENGTH _property_list _count)
     message(TRACE "Searching Arduino build properties: ${_count} properties found")
+    file(WRITE "${CMAKE_BINARY_DIR}/ArduinoFiles/preferences-${_mode}.cmake" "${_property_dump}")
 endfunction()
 
 # ----------------------------------------------------------------------------------------------------------------------
