@@ -99,6 +99,11 @@ function(arduino_get_property NAME OUTPUT_VARIABLE)
         __arduino_expand_properties(${_expand_args})
     endif()
 
+    if (NAME MATCHES ".*o\\.pattern") # <---------------------------- preserve C-string literals in command-line defines
+        # FIXME This HACK is clearly needed, but it also needs a better place, and a better invokation method.
+        string(REGEX REPLACE "(-D[^=]+)=\"([^\"]*)\"" "\\1=\\\\\"\\2\\\\\"" _property_value "${_property_value}")
+    endif()
+
     if (_GET_PROPERTY_CACHED) # <------------------------------------------------------- cache the variable if requested
         if ("${OUTPUT_VARIABLE}" MATCHES "_PATH$")
             set(_type "PATH")
