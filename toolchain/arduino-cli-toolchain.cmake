@@ -386,7 +386,7 @@ function(__arduino_make_command_list SHELL_QUOTED OUTPUT_VARIABLE)
     endwhile()
 
     if (_command)
-        message(FATAL_ERROR "BUG: Unexpected state") # we should have consumed everything
+        message(FATAL_ERROR "BUG: Unexpected state: ${_command}") # we should have consumed everything
         return()
     endif()
 
