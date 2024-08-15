@@ -22,10 +22,10 @@ function(arduino_cli_toolchain_add_test NAME)
             WORKING_DIRECTORY "${_workdir}"
 
             COMMAND "${CMAKE_COMMAND}"
-            --toolchain "${CMAKE_SOURCE_DIR}/toolchain/arduino-cli-toolchain.cmake"
-            -G "${CMAKE_GENERATOR}" -S "${CMAKE_CURRENT_SOURCE_DIR}/${NAME}"
-            -D "ARDUINO_BOARD:STRING=${_board_name}"
-            -D "CMAKE_MESSAGE_LOG_LEVEL=Trace")
+                --toolchain "${CMAKE_SOURCE_DIR}/toolchain/arduino-cli-toolchain.cmake"
+                -S "${CMAKE_CURRENT_SOURCE_DIR}/${NAME}" -G "${CMAKE_GENERATOR}"
+                -D "ARDUINO_BOARD:STRING=${_board_name}"
+                -D "CMAKE_MESSAGE_LOG_LEVEL=Trace")
 
         add_test(
             NAME "${_test_name}/reconfigure"
