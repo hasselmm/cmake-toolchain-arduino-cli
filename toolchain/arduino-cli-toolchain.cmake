@@ -498,9 +498,11 @@ function(__arduino_find_board_details MODE)
         OUTPUT_VARIABLE _properties)
 
     file(WRITE "${CMAKE_BINARY_DIR}/ArduinoFiles/preferences-${_mode}.txt" "${_properties}")
-    string(REGEX REPLACE "[ \t\r]*\n" ";" _property_list "${_properties}") # <------ set CMake variables from properties
 
-    foreach (_property IN LISTS _property_list)
+    string(REPLACE ";" "\\;" _properties "${_properties}") # <-------- split text into lines while preserving semicolons
+    string(REGEX REPLACE "[ \t\r]*\n" ";" _property_list "${_properties}")
+
+    foreach (_property IN LISTS _property_list) # <--------------------------------- set CMake variables from properties
         if (_property MATCHES "([^=]+)=(.*)")
             set(_property_name  "${CMAKE_MATCH_1}")
             set(_property_value "${CMAKE_MATCH_2}")
