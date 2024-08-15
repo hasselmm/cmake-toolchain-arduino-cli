@@ -344,11 +344,11 @@ function(__arduino_run_hooks HOOK_NAME)
     message(VERBOSE "running hook ${HOOK_NAME}")
 
     foreach(_index RANGE 1 99)
-        __arduino_get_hook_command("${HOOK_NAME}" ${_index} _command)
+        __arduino_get_hook_command("${HOOK_NAME}" ${_index} _command_list)
 
-        if (_command) # the hook sequence is not continous; it is common to skip indexes
+        if (_command_list) # the hook sequence is not continous; it is common to skip indexes
             execute_process(
-                COMMAND ${_command} RESULT_VARIABLE _result
+                COMMAND ${_command_list} RESULT_VARIABLE _result
                 OUTPUT_VARIABLE _output ERROR_VARIABLE _error)
 
             if (NOT _result EQUAL 0) # <------------------------------------ produce a detailed error message on failure
@@ -366,7 +366,7 @@ function(__arduino_run_hooks HOOK_NAME)
                     string(APPEND _error_message "\nThere was no error output.")
                 endif()
 
-                string(APPEND _error_message "\nCOMMAND list: ${_command}")
+                string(APPEND _error_message "\nCOMMAND list: ${_command_list}")
                 message(FATAL_ERROR "${_error_message}")
             endif()
         endif()
