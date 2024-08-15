@@ -369,19 +369,15 @@ endfunction()
 # Converts a shell quoted command string into a COMMAND list for execute_process().
 # ----------------------------------------------------------------------------------------------------------------------
 function(__arduino_make_command_list SHELL_QUOTED OUTPUT_VARIABLE)
-    set(_quoted  "\"([^\"]*)\"")    # quoted command line argument
-    set(_literal "([^\"\t ]+)")     # literal command line argument without spaces or quotes
-    set(_tail    "[ \t]+(.*)|$")    # the next argument separating space and the remaining text
+    set(_quoted   "\"([^\"]*)\"")   # quoted command line argument
+    set(_literal  "([^\"\t ]+)")    # literal command line argument without spaces or quotes
+    set(_tail     "[ \t]+(.*)|$")   # the next argument separating space and the remaining text
+    set(_argument "${_quoted}|${_literal}")
 
     set(_command_list)
 
-    while (_command AND _command MATCHES "^(${_quoted}|${_literal})(${_tail})") # <-------------- split the command line
-        if (CMAKE_MATCH_2)
-            list(APPEND _command_list "${CMAKE_MATCH_2}") # quoted argument
-        elseif (CMAKE_MATCH_3)
-            list(APPEND _command_list "${CMAKE_MATCH_3}") # literal argument
-        endif()
-
+    while (_command AND _command MATCHES "^(${_argument})(${_tail})") # <------------------------ split the command line
+        list(APPEND _command_list "${CMAKE_MATCH_2}${CMAKE_MATCH_3}") # one of them
         set(_command "${CMAKE_MATCH_5}")
     endwhile()
 
