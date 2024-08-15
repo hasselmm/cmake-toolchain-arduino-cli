@@ -106,6 +106,9 @@ function(arduino_get_property NAME OUTPUT_VARIABLE)
     if (NAME MATCHES ".*o\\.pattern") # <---------------------------- preserve C-string literals in command-line defines
         # This SHELL-QUOTE HACK is needed for ESP32 builds.
         string(REGEX REPLACE "(-D[^=]+)=\"([^\"]*)\"" "\\1=\\\\\"\\2\\\\\"" _property_value "${_property_value}")
+
+        # Another SHELL-QUOTE HACK for Arduino SAM D.
+        string(REPLACE "'" "\"" _property_value "${_property_value}")
     endif()
 
     if (_GET_PROPERTY_CACHED) # <------------------------------------------------------- cache the variable if requested
