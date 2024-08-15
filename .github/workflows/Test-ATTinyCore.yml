@@ -1,0 +1,9 @@
+name: ATTiny Core
+on: [push, pull_request]
+
+jobs:
+  call-workflow:
+    uses: ./.github/workflows/IntegrationTests.yml
+    with:
+      platform: ATTinyCore:avr
+      board: attinyx7

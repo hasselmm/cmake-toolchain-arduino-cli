@@ -19,7 +19,12 @@ file before *(— famous last words)*.
 
 ## Status
 
-[![Integration Tests](https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/IntegrationTests.yaml/badge.svg)](https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/IntegrationTests.yaml)
+[![Arduino AVR](https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ArduinoAVR.yml/badge.svg)](https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ArduinoAVR.yml)
+[![Arduino SAM D](https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ArduinoSAMD.yml/badge.svg)](https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ArduinoSAMD.yml)
+[![ATTiny Core](https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ATTinyCore.yml/badge.svg)](https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ATTinyCore.yml)
+[![ESP32](https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ESP32.yml/badge.svg)](https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ESP32.yml)
+[![ESP8266](https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ESP8266.yml/badge.svg)](https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ESP8266.yml)
+[![STM32 Nucleo 64](https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-STM32.yml/badge.svg)](https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-STM32.yml)
 
 This project is in early development. So far it's a fairly successful proof of concept.
 

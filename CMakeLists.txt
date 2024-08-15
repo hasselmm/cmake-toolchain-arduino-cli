@@ -6,7 +6,14 @@ add_custom_target(
     toolchain SOURCES
     toolchain/arduino-cli-toolchain.cmake
     toolchain/Arduino/RulesOverride.cmake
-    .github/workflows/IntegrationTests.yaml
+    .github/workflows/IntegrationTests.yml
+    .github/workflows/Test-ATTinyCore.yml
+    .github/workflows/Test-ArduinoAVR.yml
+    .github/workflows/Test-ArduinoSAMD.yml
+    .github/workflows/Test-ESP32.yml
+    .github/workflows/Test-ESP8266.yml
+    .github/workflows/Test-STM32.yml
+    .github/FUNDING.yml
     README.md
     LICENSE
 )

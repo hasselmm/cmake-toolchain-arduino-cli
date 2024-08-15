@@ -1,0 +1,9 @@
+name: Arduino AVR
+on: [push, pull_request]
+
+jobs:
+  call-workflow:
+    uses: ./.github/workflows/IntegrationTests.yml
+    with:
+      platform: arduino:avr
+      board: nano

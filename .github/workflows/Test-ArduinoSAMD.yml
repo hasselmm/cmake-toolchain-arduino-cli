@@ -1,0 +1,9 @@
+name: Arduino SAM D
+on: [push, pull_request]
+
+jobs:
+  call-workflow:
+    uses: ./.github/workflows/IntegrationTests.yml
+    with:
+      platform: arduino:samd
+      board: nano_33_iot
