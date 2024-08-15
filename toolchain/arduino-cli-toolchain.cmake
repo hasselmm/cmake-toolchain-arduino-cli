@@ -99,8 +99,12 @@ function(arduino_get_property NAME OUTPUT_VARIABLE)
         __arduino_expand_properties(${_expand_args})
     endif()
 
+    # FIXME These SHELL-QUOTE HACK hacks are needed, but first of all it needs a better place, and a better
+    # invokation method. And secondly FIXME: I absolutely have to find and understand how android-cli
+    # turns these very random and very wild shell-quoted strings into actual commands.
+
     if (NAME MATCHES ".*o\\.pattern") # <---------------------------- preserve C-string literals in command-line defines
-        # FIXME This HACK is clearly needed, but it also needs a better place, and a better invokation method.
+        # This SHELL-QUOTE HACK is needed for ESP32 builds.
         string(REGEX REPLACE "(-D[^=]+)=\"([^\"]*)\"" "\\1=\\\\\"\\2\\\\\"" _property_value "${_property_value}")
     endif()
 
