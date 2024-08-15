@@ -649,17 +649,18 @@ endfunction()
 function(__arduino_add_upload_target TARGET UPLOAD_TARGET FIRMWARE_FILENAME UPLOAD_TOOL)
     arduino_get_property("${UPLOAD_TOOL}" _tool_name)
 
-    arduino_get_property(
-        "tools.${_tool_name}.upload.pattern" _command
-        CONTEXT "tools.${_tool_name}" TARGET "${TARGET}")
+    if (_tool_name)
+        arduino_get_property(
+            "tools.${_tool_name}.upload.pattern" _command
+            CONTEXT "tools.${_tool_name}" TARGET "${TARGET}")
 
-    __arduino_make_command_list("${_command}" _command_list)
+        __arduino_make_command_list("${_command}" _command_list)
 
-    add_custom_target(
-        "${UPLOAD_TARGET}" DEPENDS "${FIRMWARE_FILENAME}"
-        COMMENT "Uploading ${FIRMWARE_FILENAME} to attached device"
-        COMMAND ${_command_list}
-    )
+        add_custom_target(
+            "${UPLOAD_TARGET}" DEPENDS "${FIRMWARE_FILENAME}"
+            COMMENT "Uploading ${FIRMWARE_FILENAME} to attached device"
+            COMMAND ${_command_list})
+    endif()
 endfunction()
 
 # ----------------------------------------------------------------------------------------------------------------------
