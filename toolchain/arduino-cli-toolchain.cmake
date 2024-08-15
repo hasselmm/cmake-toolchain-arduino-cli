@@ -471,7 +471,7 @@ function(__arduino_find_board_details MODE)
         OUTPUT_STRIP_TRAILING_WHITESPACE
         OUTPUT_VARIABLE _properties)
 
-    file(WRITE "${CMAKE_BINARY_DIR}/preferences-${_mode}.txt" "${_properties}")
+    file(WRITE "${CMAKE_BINARY_DIR}/ArduinoFiles/preferences-${_mode}.txt" "${_properties}")
     string(REGEX REPLACE "[ \t\r]*\n" ";" _property_list "${_properties}") # <------ set CMake variables from properties
 
     foreach (_property IN LISTS _property_list)
@@ -511,7 +511,7 @@ function(__arduino_find_libraries)
         OUTPUT_STRIP_TRAILING_WHITESPACE
         OUTPUT_VARIABLE _json)
 
-    file(WRITE "${CMAKE_BINARY_DIR}/libraries.json" "${_json}")
+    file(WRITE "${CMAKE_BINARY_DIR}/ArduinoFiles/libraries.json" "${_json}")
     string(JSON _installed_libraries GET "${_json}" installed_libraries)
     string(JSON _count LENGTH "${_installed_libraries}")
 
