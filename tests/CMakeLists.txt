@@ -8,16 +8,17 @@ function(arduino_cli_toolchain_add_test NAME)
     add_custom_target("${NAME}" SOURCES "${NAME}/CMakeLists.txt")
 
     foreach(_board_name IN LISTS ARDUINO_CLI_TOOLCHAIN_TESTED_BOARDS)
-        string(REPLACE ":" "/" _portable_board_name "${_board_name}")
+        string(REPLACE ":" ";" _board_name_components "${_board_name}")
+        list(GET _board_name_components 2 _board_id)
 
-        set(_test_name "${_portable_board_name}/${NAME}")
-        set(_workdir "${CMAKE_CURRENT_BINARY_DIR}/${_test_name}")
+        set(_test_name "${_board_id}/${NAME}")
+        set(_workdir "${CMAKE_BINARY_DIR}/${_test_name}")
 
         file(REMOVE_RECURSE "${_workdir}")
         file(MAKE_DIRECTORY "${_workdir}")
 
         add_test(
-            NAME "${_test_name}-configure"
+            NAME "${_test_name}/configure"
             WORKING_DIRECTORY "${_workdir}"
 
             COMMAND "${CMAKE_COMMAND}"
@@ -27,32 +28,32 @@ function(arduino_cli_toolchain_add_test NAME)
             -D "CMAKE_MESSAGE_LOG_LEVEL=Trace")
 
         add_test(
-            NAME "${_test_name}-reconfigure"
+            NAME "${_test_name}/reconfigure"
             WORKING_DIRECTORY "${_workdir}"
             COMMAND "${CMAKE_COMMAND}")
 
         add_test(
-            NAME "${_test_name}-build"
+            NAME "${_test_name}/build"
             WORKING_DIRECTORY "${_workdir}"
             COMMAND "${CMAKE_COMMAND}" --build ".")
 
         set_property(
-            TEST "${_test_name}-configure"
+            TEST "${_test_name}/configure"
             PROPERTY LABELS "${_board_name}")
 
         set_property(
-            TEST "${_test_name}-reconfigure"
+            TEST "${_test_name}/reconfigure"
             PROPERTY LABELS "${_board_name}")
         set_property(
-            TEST "${_test_name}-reconfigure"
-            PROPERTY DEPENDS "${_test_name}-configure")
+            TEST "${_test_name}/reconfigure"
+            PROPERTY DEPENDS "${_test_name}/configure")
 
         set_property(
-            TEST "${_test_name}-build"
+            TEST "${_test_name}/build"
             PROPERTY LABELS "${_board_name}")
         set_property(
-            TEST "${_test_name}-build"
-            PROPERTY DEPENDS "${_test_name}-reconfigure")
+            TEST "${_test_name}/build"
+            PROPERTY DEPENDS "${_test_name}/reconfigure")
     endforeach()
 endfunction()
 
