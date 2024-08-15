@@ -1,29 +1,18 @@
 name: Integration Tests
-on: [push, pull_request]
+
+on:
+  workflow_call:
+    inputs:
+      platform:
+        required: true
+        type: string
+
+      board:
+        required: true
+        type: string
 
 jobs:
   testing:
-
-    strategy:
-      matrix:
-        platform:
-          - arduino:avr
-          #- arduino:samd
-          - esp8266:esp8266
-          - esp32:esp32
-
-        include:
-          - platform: arduino:avr
-            fqbn:     arduino:avr:nano
-          # - platform: arduino:samd
-          #   fqbn:     arduino:samd:nano_33_iot
-          - platform: esp8266:esp8266
-            fqbn:     esp8266:esp8266:nodemcuv2
-          - platform: esp32:esp32
-            fqbn:     esp32:esp32:nodemcu-32s
-
-      fail-fast: false
-
     runs-on: windows-latest
 
     steps:
@@ -41,7 +30,7 @@ jobs:
           arduino-cli config dump
 
           arduino-cli core update-index
-          arduino-cli core install ${{ matrix.platform }}
+          arduino-cli core install ${{ inputs.platform }}
 
       - name: Install Ninja
         uses: turtlesec-no/get-ninja@main
@@ -50,7 +39,7 @@ jobs:
         run: |
           mkdir test
           cd test
-          cmake ..  -GNinja -DARDUINO_CLI_TOOLCHAIN_TESTED_BOARDS=${{ matrix.fqbn }}
+          cmake ..  -GNinja -DARDUINO_CLI_TOOLCHAIN_TESTED_BOARDS=${{ format('{0}:{1}', inputs.platform, inputs.board) }}
 
       - name: Test toolchain
         run: |

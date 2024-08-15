@@ -1,0 +1,9 @@
+name: ESP32
+on: [push, pull_request]
+
+jobs:
+  call-workflow:
+    uses: ./.github/workflows/IntegrationTests.yml
+    with:
+      platform: esp32:esp32
+      board: nodemcu-32s

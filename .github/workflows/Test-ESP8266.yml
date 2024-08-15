@@ -1,0 +1,9 @@
+name: ESP8266
+on: [push, pull_request]
+
+jobs:
+  call-workflow:
+    uses: ./.github/workflows/IntegrationTests.yml
+    with:
+      platform: esp8266:esp8266
+      board: nodemcuv2
