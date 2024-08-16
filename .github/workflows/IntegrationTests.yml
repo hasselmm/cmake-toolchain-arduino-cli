@@ -60,7 +60,7 @@ jobs:
           cd test
           ctest --build-config Debug -V
 
-      - name: Generated binaries
+      - name: Upload generated binaries
         uses: actions/upload-artifact@v4
         with:
           name: binaries
