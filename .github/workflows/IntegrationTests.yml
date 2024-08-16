@@ -7,10 +7,6 @@ on:
         required: true
         type: string
 
-      board:
-        required: true
-        type: string
-
 jobs:
   testing:
     runs-on: windows-latest
@@ -51,14 +47,13 @@ jobs:
         run: |
           mkdir test
           cd test
-
-          $boardIds = "${{ format('{0}:{1}', inputs.platform, inputs.board) }}"
-          cmake ..  -G Ninja -D "ARDUINO_CLI_TOOLCHAIN_TESTED_BOARDS=$boardIds"
+          cmake -G Ninja ..
 
       - name: Run the test suite
         run: |
-          cd test
-          ctest --build-config Debug -V
+          ctest `
+            --build-config Debug --test-dir test `
+            --parallel --verbose --label-regex "^${{ inputs.platform }}:"
 
       - name: Upload generated binaries
         uses: actions/upload-artifact@v4
