@@ -623,29 +623,32 @@ function(__arduino_add_import_library NAME SOURCE_DIR) # [SOURCE_DIR...]
     set(_library_source_dir "${CMAKE_BINARY_DIR}/ArduinoFiles/${NAME}")
     set(_library_template "${ARDUINO_TOOLCHAIN_DIR}/Templates/ArduinoLibraryCMakeLists.txt.in")
     set(_library_filepath "${_library_binary_dir}/lib${_libname}.a")
-    set(_source_dir_list "${SOURCE_DIR}" ${ARGN})
+
+    set(_library_directories "${SOURCE_DIR}" ${ARGN})
+    list(FILTER _library_directories EXCLUDE REGEX "^ *\$")
+    list(REMOVE_DUPLICATES _library_directories)
+    list(SORT _library_directories)
 
     set(_library_glob_patterns) # <-------------------------------------------------- collect the library's source files
 
     foreach(_dirpath IN LISTS _library_directories)
-        if (_dirpath)
-            list(APPEND _library_glob_patterns
-                "${_dirpath}/*.[cC]"
-                "${_dirpath}/*.[cC][cC]"
-                "${_dirpath}/*.[cC][pP][pP]"
-                "${_dirpath}/*.[cC][xX][xX]"
-                "${_dirpath}/*.[hH]"
-                "${_dirpath}/*.[hH][hH]"
-                "${_dirpath}/*.[hH][pP][pP]"
-                "${_dirpath}/*.[hH][xX][xX]"
-                "${_dirpath}/*.[sS]")
-        endif()
+        list(APPEND _library_glob_patterns
+            "${_dirpath}/*.[cC]"
+            "${_dirpath}/*.[cC][cC]"
+            "${_dirpath}/*.[cC][pP][pP]"
+            "${_dirpath}/*.[cC][xX][xX]"
+            "${_dirpath}/*.[hH]"
+            "${_dirpath}/*.[hH][hH]"
+            "${_dirpath}/*.[hH][pP][pP]"
+            "${_dirpath}/*.[hH][xX][xX]"
+            "${_dirpath}/*.[sS]")
     endforeach()
 
     file(GLOB_RECURSE _library_sources ${_library_glob_patterns})
 
     list(LENGTH _library_sources _source_file_count)
-    message(STATUS "${_source_file_count} source files found for ${_target}")
+    list(LENGTH _library_directories _source_dir_count)
+    message(STATUS "${_source_file_count} source files found for ${_target} in ${_source_dir_count} directories")
 
     list(JOIN _library_sources     "\"\n    \"" _quoted_library_sources) # <--------- prepare CMake to build out of tree
     list(JOIN _library_directories "\"\n    \"" _quoted_library_directories)
@@ -679,7 +682,7 @@ function(__arduino_add_import_library NAME SOURCE_DIR) # [SOURCE_DIR...]
         target_link_libraries("${_target}" INTERFACE Arduino::Core)
     endif()
 
-    target_include_directories("${_target}" INTERFACE ${_source_dir_list})
+    target_include_directories("${_target}" INTERFACE ${_library_directories})
     set_property(TARGET "${_target}" PROPERTY IMPORTED_LOCATION "${_library_filepath}")
     set_property(TARGET "${_target}" PROPERTY SYSTEM NO) # otherwise AVR builds will fail
 
