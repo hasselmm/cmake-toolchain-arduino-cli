@@ -53,7 +53,14 @@ jobs:
         run: |
           ctest `
             --build-config Debug --test-dir test `
-            --parallel --verbose --label-regex "^${{ inputs.platform }}:"
+            --parallel --verbose --label-regex "^${{ inputs.platform }}:" `
+            --output-junit test-results.xml
+
+      - name: Produce test summary
+        uses: test-summary/action@v2
+        if:   always()
+        with:
+          paths: "**/test-results.xml"
 
       - name: Upload generated binaries
         uses: actions/upload-artifact@v4
