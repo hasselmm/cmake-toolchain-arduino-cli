@@ -350,7 +350,7 @@ endfunction()
 # Runs all the commands defined for `HOOK` right now via execute_process().
 # ----------------------------------------------------------------------------------------------------------------------
 function(__arduino_run_hooks HOOK_NAME)
-    message(VERBOSE "running hook ${HOOK_NAME}")
+    message(VERBOSE "Running hook ${HOOK_NAME}")
 
     foreach(_index RANGE 1 99)
         __arduino_get_hook_command("${HOOK_NAME}" ${_index} _command_list)
