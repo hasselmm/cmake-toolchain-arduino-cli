@@ -52,8 +52,8 @@ jobs:
           mkdir test
           cd test
 
-          cmake ..  -G Ninja `
-            -D "ARDUINO_CLI_TOOLCHAIN_TESTED_BOARDS=${{ format('{0}:{1}', inputs.platform, inputs.board) }}"
+          $boardIds = "${{ format('{0}:{1}', inputs.platform, inputs.board) }}"
+          cmake ..  -G Ninja -D "ARDUINO_CLI_TOOLCHAIN_TESTED_BOARDS=$boardIds"
 
       - name: Run the test suite
         run: |
