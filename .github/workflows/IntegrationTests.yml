@@ -34,13 +34,26 @@ jobs:
           arduino-cli core install ${{ inputs.platform }}
 
       - name: Install Ninja
-        uses: turtlesec-no/get-ninja@main
+        id: ninja
+        run: |
+            $releaseUrl = "https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-win.zip"
+            $expectedHash = "F550FEC705B6D6FF58F2DB3C374C2277A37691678D6ABA463ADCBB129108467A"
+
+            Invoke-WebRequest -Uri $releaseUrl -OutFile ninja.zip
+            Expand-Archive -Path ninja.zip -DestinationPath ninja
+
+            $actualHash = (Get-FileHash -Path ninja.zip -Algorithm SHA256).Hash
+            if ($actualHash -ne $expectedHash) { exit 1 }
+
+            echo "PATH=$PWD/ninja;$env:PATH" >> $env:GITHUB_ENV
 
       - name: Configure test suite
         run: |
           mkdir test
           cd test
-          cmake ..  -GNinja -DARDUINO_CLI_TOOLCHAIN_TESTED_BOARDS=${{ format('{0}:{1}', inputs.platform, inputs.board) }}
+
+          cmake ..  -G Ninja `
+            -D "ARDUINO_CLI_TOOLCHAIN_TESTED_BOARDS=${{ format('{0}:{1}', inputs.platform, inputs.board) }}"
 
       - name: Run the test suite
         run: |
