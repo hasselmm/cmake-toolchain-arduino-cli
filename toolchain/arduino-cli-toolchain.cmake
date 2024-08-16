@@ -490,22 +490,53 @@ function(__arduino_find_board_details MODE)
     endif()
 
     string(TOLOWER "${MODE}" _mode)
-    message(TRACE "Searching Arduino ${_mode} build properties...")
 
-    execute_process( # <--------------------------------------------------------------------------- run arduino-cli tool
-        COMMAND "${ARDUINO_CLI_EXECUTABLE}"
+    set(_use_property_cache YES) # <----------------------------------------- figure out if a cached version can be used
+    set(_cachefile_variable "__ARDUINO_PROPERTIES_${MODE}_CACHE")
+
+    if (DEFINED "${_cachefile_variable}")
+        set(_arduino_cache_filepath "${${_cachefile_variable}}")
+        set(_cmake_dump_filepath) # do not dump already cached variables
+    else()
+        set(_arduino_cache_filepath "${CMAKE_BINARY_DIR}/ArduinoFiles/preferences-${_mode}.txt")
+        set(_cmake_dump_filepath    "${CMAKE_BINARY_DIR}/ArduinoFiles/preferences-${_mode}.cmake")
+
+        if (NOT EXISTS "${_arduino_cache_filepath}"
+                OR NOT EXISTS "${CMAKE_BINARY_DIR}/CMakeCache.txt"
+                OR NOT "${_arduino_cache_filepath}" IS_NEWER_THAN "${CMAKE_BINARY_DIR}/CMakeCache.txt")
+            set(_use_property_cache NO)
+        endif()
+    endif()
+
+    set("${_cachefile_variable}" "${_arduino_cache_filepath}" PARENT_SCOPE)
+
+    if (_use_property_cache) # <---------------------------------------------------------- try to read cached properties
+        message(STATUS "Reading ${_mode} build properties from ${_arduino_cache_filepath}")
+        file(READ "${_arduino_cache_filepath}" _properties)
+    else() # <------------------------------------------------------------------------------------- run arduino-cli tool
+        message(STATUS "Running android-cli to read ${_mode} build properties...")
+
+        execute_process(
+            COMMAND "${ARDUINO_CLI_EXECUTABLE}"
             board details "--fqbn=${ARDUINO_BOARD}"
             --show-properties=${_mode} --format=text
 
-        ENCODING UTF-8
-        COMMAND_ERROR_IS_FATAL ANY
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-        OUTPUT_VARIABLE _properties)
+            ENCODING UTF-8
+            COMMAND_ERROR_IS_FATAL ANY
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            OUTPUT_VARIABLE _properties)
 
-    file(WRITE "${CMAKE_BINARY_DIR}/ArduinoFiles/preferences-${_mode}.txt" "${_properties}")
+        file(WRITE "${_arduino_cache_filepath}" "${_properties}")
+    endif()
 
-    string(REPLACE ";" "\\;" _properties "${_properties}") # <-------- split text into lines while preserving semicolons
-    string(REGEX REPLACE "[ \t\r]*\n" ";" _property_list "${_properties}")
+    if (NOT _property_list)
+        string(REPLACE ";" "\\;" _properties "${_properties}") # <------------------ split into lines; preserving semicolons
+        string(REGEX REPLACE "[ \t\r]*\n" ";" _property_list "${_properties}")
+
+        list(LENGTH _property_list _count)
+        message(STATUS "  ${_count} properties found")
+    endif()
+
     set(_variable_dump "")
 
     foreach (_property IN LISTS _property_list) # <--------------------------------- set CMake variables from properties
@@ -527,32 +558,53 @@ function(__arduino_find_board_details MODE)
         endif()
     endforeach()
 
-    list(LENGTH _property_list _count)
-    message(TRACE "Searching Arduino build properties: ${_count} properties found")
-    file(WRITE "${CMAKE_BINARY_DIR}/ArduinoFiles/preferences-${_mode}.cmake" "${_property_dump}")
+    if ("${_cmake_dump_filepath}") # <---------------------------------------------- only dump after running arduino-cli
+        file(WRITE "${_cmake_dump_filepath}" "${_property_dump}")
+    endif()
 endfunction()
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Collects available libraries for the current board from arduino-cli.
 # ----------------------------------------------------------------------------------------------------------------------
 function(__arduino_find_libraries)
-    message(TRACE "Searching installed Arduino libraries...")
+    set(_use_library_cache YES) # <------------------------------------------ figure out if a cached version can be used
 
-    execute_process(
-        COMMAND "${ARDUINO_CLI_EXECUTABLE}"
+    if (__ARDUINO_INSTALLED_LIBRARIES_CACHE)
+        set(_arduino_cache_filepath "${__ARDUINO_INSTALLED_LIBRARIES_CACHE}")
+    else()
+        set(_arduino_cache_filepath "${CMAKE_BINARY_DIR}/ArduinoFiles/libraries.json")
+
+        if (NOT EXISTS "${_arduino_cache_filepath}"
+                OR NOT EXISTS "${CMAKE_BINARY_DIR}/CMakeCache.txt"
+                OR NOT "${_arduino_cache_filepath}" IS_NEWER_THAN "${CMAKE_BINARY_DIR}/CMakeCache.txt")
+            set(_use_library_cache NO)
+        endif()
+    endif()
+
+    if (_use_library_cache) # <------------------------------------------------------------ try to read cached libraries
+        message(STATUS "Reading installed Arduino libraries from ${_arduino_cache_filepath}")
+        file(READ "${_arduino_cache_filepath}" _json)
+    else() # <------------------------------------------------------------------------------------- run arduino-cli tool
+        message(STATUS "Running android-cli to read installed Arduino libraries...")
+
+        execute_process(
+            COMMAND "${ARDUINO_CLI_EXECUTABLE}"
             lib list "--fqbn=${ARDUINO_BOARD}" --format=json
 
-        ENCODING UTF-8
-        COMMAND_ERROR_IS_FATAL ANY
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-        OUTPUT_VARIABLE _json)
+            ENCODING UTF-8
+            COMMAND_ERROR_IS_FATAL ANY
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            OUTPUT_VARIABLE _json)
 
-    file(WRITE "${CMAKE_BINARY_DIR}/ArduinoFiles/libraries.json" "${_json}")
-    string(JSON _installed_libraries GET "${_json}" installed_libraries)
+        file(WRITE "${_arduino_cache_filepath}" "${_json}")
+    endif()
+
+    string(JSON _installed_libraries GET "${_json}" installed_libraries) # <-------------- parse the library information
     string(JSON _count LENGTH "${_installed_libraries}")
+    message(STATUS "  ${_count} libraries found")
 
-    message(TRACE "Searching installed Arduino libraries: ${_count} libraries found")
-    set(__ARDUINO_INSTALLED_LIBRARIES "${_installed_libraries}" PARENT_SCOPE)
+    set(__ARDUINO_INSTALLED_LIBRARIES       "${_installed_libraries}"    PARENT_SCOPE)
+    set(__ARDUINO_INSTALLED_LIBRARIES_CACHE "${_arduino_cache_filepath}" PARENT_SCOPE)
 endfunction()
 
 # ======================================================================================================================
@@ -820,8 +872,14 @@ __arduino_run_hooks("recipe.hooks.prebuild")
 # recipe.hooks.objcopy.postobjcopy
 # recipe.hooks.sketch.prebuild.pattern
 
-list(APPEND CMAKE_TRY_COMPILE_PLATFORM_VARIABLES ARDUINO_BOARD) # <----------------------------- configure try_compile()
-set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY) #                     try_compile() doesn't provide setup() and loop()
+list( # <--------------------------------------------------------------------------------------- configure try_compile()
+    APPEND CMAKE_TRY_COMPILE_PLATFORM_VARIABLES
+    ARDUINO_BOARD                                                                                  # make it just work
+    __ARDUINO_PROPERTIES_EXPANDED_CACHE                                                            # make it MUCH faster
+    __ARDUINO_PROPERTIES_UNEXPANDED_CACHE
+    __ARDUINO_INSTALLED_LIBRARIES_CACHE)
+
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)                     # try_compile() doesn't provide setup() and loop()
 
 cmake_path(GET CMAKE_CURRENT_LIST_FILE PARENT_PATH ARDUINO_TOOLCHAIN_DIR) # <---------- really use ".o" for object files
 set(CMAKE_USER_MAKE_RULES_OVERRIDE "${ARDUINO_TOOLCHAIN_DIR}/Arduino/RulesOverride.cmake")
