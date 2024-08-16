@@ -628,16 +628,18 @@ function(__arduino_add_import_library NAME SOURCE_DIR) # [SOURCE_DIR...]
     set(_library_glob_patterns) # <-------------------------------------------------- collect the library's source files
 
     foreach(_dirpath IN LISTS _library_directories)
-        list(APPEND _library_glob_patterns
-            "${_dirpath}/*.[cC]"
-            "${_dirpath}/*.[cC][cC]"
-            "${_dirpath}/*.[cC][pP][pP]"
-            "${_dirpath}/*.[cC][xX][xX]"
-            "${_dirpath}/*.[hH]"
-            "${_dirpath}/*.[hH][hH]"
-            "${_dirpath}/*.[hH][pP][pP]"
-            "${_dirpath}/*.[hH][xX][xX]"
-            "${_dirpath}/*.[sS]")
+        if (_dirpath)
+            list(APPEND _library_glob_patterns
+                "${_dirpath}/*.[cC]"
+                "${_dirpath}/*.[cC][cC]"
+                "${_dirpath}/*.[cC][pP][pP]"
+                "${_dirpath}/*.[cC][xX][xX]"
+                "${_dirpath}/*.[hH]"
+                "${_dirpath}/*.[hH][hH]"
+                "${_dirpath}/*.[hH][pP][pP]"
+                "${_dirpath}/*.[hH][xX][xX]"
+                "${_dirpath}/*.[sS]")
+        endif()
     endforeach()
 
     file(GLOB_RECURSE _library_sources ${_library_glob_patterns})

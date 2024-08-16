@@ -6,4 +6,3 @@ jobs:
     uses: ./.github/workflows/IntegrationTests.yml
     with:
       platform: esp8266:esp8266
-      board: nodemcuv2

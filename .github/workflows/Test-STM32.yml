@@ -6,4 +6,3 @@ jobs:
     uses: ./.github/workflows/IntegrationTests.yml
     with:
       platform: STMicroelectronics:stm32
-      board: Nucleo_64:pnum=NUCLEO_F103RB

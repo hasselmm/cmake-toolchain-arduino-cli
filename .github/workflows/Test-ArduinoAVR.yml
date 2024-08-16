@@ -6,4 +6,3 @@ jobs:
     uses: ./.github/workflows/IntegrationTests.yml
     with:
       platform: arduino:avr
-      board: nano
