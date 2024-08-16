@@ -764,6 +764,8 @@ else()
 endif()
 
 message(STATUS "Configuring Arduino for board id ${ARDUINO_BOARD}")
+message(TRACE  "  in ${CMAKE_BINARY_DIR}")
+message(TRACE  "  from ${CMAKE_PARENT_LIST_FILE}")
 
 __arduino_find_arduino_cli() # <----------------------------------------------------------- find components and settings
 __arduino_find_board_details(EXPANDED)
