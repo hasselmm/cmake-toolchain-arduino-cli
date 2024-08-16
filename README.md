@@ -11,10 +11,10 @@ add_executable(CMakeBlink CMakeBlink.ino)
 ```
 
 This all can be done using [Arduino CLI](https://github.com/arduino/arduino-cli).
-This  toolchain fully based upon this really great tool: There are no tricks, no hacks, 
-no manual parsing  of obscure text files at undocumented locations. Just the official
+This toolchain is fully based upon this really great tool: There are no tricks, no hacks, 
+no manual parsing of obscure text files at undocumented locations. Just the official
 API and some pretty straight forward CMake. That's the main principle of this toolchain
-file, and that's what hopefully  makes it more robust than any other Arduino toolchain
+file, and that's what hopefully makes it more robust than any other Arduino toolchain
 file before *(— famous last words)*.
 
 ## Status
@@ -26,7 +26,8 @@ file before *(— famous last words)*.
 [![ESP8266        ][ESP8266.svg]    ][ESP8266.yml]
 [![STM32 Nucleo 64][STM32.svg]      ][STM32.yml]
 
-This project is in early development. So far it's a fairly successful proof of concept.
+This project is in **early development**.
+So far nothing more than a fairly successful proof of concept.
 
 - There still are plenty of shorcuts and major FIXME comments in the scipts.
 - The toolchain only has been successfully tested with the Ninja generator so far.
@@ -34,6 +35,8 @@ This project is in early development. So far it's a fairly successful proof of c
 - Most importantly one cannot add libraries yet.
 - Annoyingly one still needs an `#include <Arduino.h>` in the main sketch.
 - Many more problems, I guess...
+
+Check ["ready for public announcement"][milestone-2] to see what's missing.
 
 Anyway, if you got some spare time, feel free to try out, to test, to give feedback,
 to contribute.
@@ -101,3 +104,5 @@ compiler detection accept Arduinos very special binary layout.
 [ESP32.yml]:       https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ESP32.yml
 [ESP8266.yml]:     https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ESP8266.yml
 [STM32.yml]:       https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-STM32.yml
+
+[milestone-2]:     https://github.com/hasselmm/cmake-toolchain-arduino-cli/milestone/2
