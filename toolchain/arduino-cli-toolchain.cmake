@@ -907,7 +907,7 @@ if (CMAKE_PARENT_LIST_FILE MATCHES "CMakeSystem\\.cmake$") # <----------------- 
         "The protocol to use for uploading compiled sketches.")
     __arduino_option(
         STRING ARDUINO_UPLOAD_SPEED "115200"
-        "The transfer speed when uploading Skecompiled sketches.")
+        "The transfer speed when uploading compiled sketches.")
 
     __arduino_option(
         STRING ARDUINO_UPLOAD_NETWORK_ADDRESS "192.168.4.1"
