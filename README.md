@@ -93,6 +93,21 @@ This project would not have been possible without all the previous hard work
 I took good inspiration from it, especially when it comes to making CMake's initial
 compiler detection accept Arduinos very special binary layout.
 
+## Third-Party Code
+
+This project's test suites uses example code from third parties:
+
+* [DigitalPotControl](tests/DigitalPotControl/DigitalPotControl.ino)
+  by _Heather Dewey-Hagborg_ and _Tom Igoe_.
+* [EchoString](tests/EchoString/EchoString.ino)
+  by unknown author: This example code is in the public domain.
+* [LinkStatus](tests/LinkStatus/LinkStatus.ino)
+  by _Cristian Maglie_: This example code is in the public domain.
+* [TFTBitmapLogo](tests/TFTBitmapLogo/TFTBitmapLogo.ino)
+  by _Enrico Gueli_: This example code is in the public domain.
+* [TwoPortReceive](tests/TwoPortReceive/TwoPortReceive.ino)
+  by _Mikal Hart_ and _Tom Igoe_: this example code is in the public domain.
+
 <!-- The following are the link reference definitions used in this document -->
 
 [arduino-avr]:          https://github.com/arduino/ArduinoCore-avr
