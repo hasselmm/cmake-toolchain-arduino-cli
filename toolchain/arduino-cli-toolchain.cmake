@@ -498,8 +498,8 @@ function(__arduino_find_board_details MODE)
         set(_arduino_cache_filepath "${${_cachefile_variable}}")
         set(_cmake_dump_filepath) # do not dump already cached variables
     else()
-        set(_arduino_cache_filepath "${CMAKE_BINARY_DIR}/ArduinoFiles/preferences-${_mode}.txt")
-        set(_cmake_dump_filepath    "${CMAKE_BINARY_DIR}/ArduinoFiles/preferences-${_mode}.cmake")
+        set(_arduino_cache_filepath "${CMAKE_BINARY_DIR}/ArduinoFiles/properties-${_mode}.txt")
+        set(_cmake_dump_filepath    "${CMAKE_BINARY_DIR}/ArduinoFiles/properties-${_mode}.cmake")
 
         if (NOT EXISTS "${_arduino_cache_filepath}"
                 OR NOT EXISTS "${CMAKE_BINARY_DIR}/CMakeCache.txt"
