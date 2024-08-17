@@ -4,8 +4,20 @@ enable_testing()
 
 add_custom_target(
     toolchain SOURCES
-    toolchain/arduino-cli-toolchain.cmake
+    toolchain/Arduino/CollectLibraries.cmake
+    toolchain/Arduino/Preprocess.cmake
     toolchain/Arduino/RulesOverride.cmake
+    toolchain/arduino-cli-toolchain.cmake
+)
+
+add_custom_target(
+    tools SOURCES
+    tests/platforms.cmake
+    tools/check-platform-support.cmake
+)
+
+add_custom_target(
+    github SOURCES
     .github/workflows/IntegrationTests.yml
     .github/workflows/Test-ATTinyCore.yml
     .github/workflows/Test-ArduinoAVR.yml
