@@ -17,7 +17,7 @@ if (NOT ARDUINO_CLI_TOOLCHAIN_TESTED_BOARDS)
 endif()
 
 function(arduino_cli_toolchain_add_test NAME)
-    add_custom_target("${NAME}" SOURCES "${NAME}/CMakeLists.txt")
+    add_custom_target("${NAME}" SOURCES "${NAME}/CMakeLists.txt" "${NAME}/${NAME}.ino")
 
     foreach(_board_name IN LISTS ARDUINO_CLI_TOOLCHAIN_TESTED_BOARDS)
         string(REPLACE ":" ";" _board_name_components "${_board_name}")
