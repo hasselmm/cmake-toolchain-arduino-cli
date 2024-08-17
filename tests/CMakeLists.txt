@@ -41,7 +41,7 @@ function(arduino_cli_toolchain_add_test NAME)
 
         set_tests_properties(
             "${_test_name}/configure" PROPERTIES
-            FIXTURES_SETUP "${_board_id}/configure"
+            FIXTURES_SETUP "${_test_name}/configure"
             LABELS "${_board_name}")
 
         add_test( # <-------------------------------------------------------- verify that CMake can be run a second time
@@ -51,8 +51,8 @@ function(arduino_cli_toolchain_add_test NAME)
 
         set_tests_properties(
             "${_test_name}/reconfigure" PROPERTIES
-            FIXTURES_REQUIRED "${_board_id}/configure"
-            FIXTURES_SETUP "${_board_id}/reconfigure"
+            FIXTURES_REQUIRED "${_test_name}/configure"
+            FIXTURES_SETUP "${_test_name}/reconfigure"
             LABELS "${_board_name}")
 
         add_test( # <-------------------------------------------------------------- finally build the Sketch using CMake
@@ -62,7 +62,7 @@ function(arduino_cli_toolchain_add_test NAME)
 
         set_tests_properties(
             "${_test_name}/build" PROPERTIES
-            FIXTURES_REQUIRED "${_board_id}/reconfigure"
+            FIXTURES_REQUIRED "${_test_name}/reconfigure"
             LABELS "${_board_name}")
     endforeach()
 endfunction()
