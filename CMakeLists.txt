@@ -4,8 +4,6 @@ enable_testing()
 
 add_custom_target(
     toolchain SOURCES
-    toolchain/Arduino/CollectLibraries.cmake
-    toolchain/Arduino/Preprocess.cmake
     toolchain/Arduino/RulesOverride.cmake
     toolchain/arduino-cli-toolchain.cmake
 )
