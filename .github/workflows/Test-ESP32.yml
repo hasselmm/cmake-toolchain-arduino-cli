@@ -1,8 +1,14 @@
 name: ESP32
-on: [push, pull_request]
+
+on:
+  workflow_call:
+    inputs:
+      dummy:
+        required: false
+        type: boolean
 
 jobs:
   call-workflow:
-    uses: ./.github/workflows/IntegrationTests.yml
+    uses: ./.github/workflows/RunTestSuite.yml
     with:
       platform: esp32:esp32

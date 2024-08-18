@@ -91,12 +91,12 @@ compiler detection accept Arduinos very special binary layout.
 
 
 
-[ArduinoAVR.svg]:  https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ArduinoAVR.yml/badge.svg
-[ArduinoSAMD.svg]: https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ArduinoSAMD.yml/badge.svg
-[ATTinyCore.svg]:  https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ATTinyCore.yml/badge.svg
-[ESP32.svg]:       https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ESP32.yml/badge.svg
-[ESP8266.svg]:     https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ESP8266.yml/badge.svg
-[STM32.svg]:       https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-STM32.yml/badge.svg
+[ArduinoAVR.svg]:  https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ArduinoAVR.yml/badge.svg?event=workflow_run
+[ArduinoSAMD.svg]: https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ArduinoSAMD.yml/badge.svg?event=workflow_run
+[ATTinyCore.svg]:  https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ATTinyCore.yml/badge.svg?event=workflow_run
+[ESP32.svg]:       https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ESP32.yml/badge.svg?event=workflow_run
+[ESP8266.svg]:     https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ESP8266.yml/badge.svg?event=workflow_run
+[STM32.svg]:       https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-STM32.yml/badge.svg?event=workflow_run
 
 [ArduinoAVR.yml]:  https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ArduinoAVR.yml
 [ArduinoSAMD.yml]: https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/Test-ArduinoSAMD.yml

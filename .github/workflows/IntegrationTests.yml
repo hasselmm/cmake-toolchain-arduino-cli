@@ -1,72 +1,22 @@
 name: Integration Tests
-
-on:
-  workflow_call:
-    inputs:
-      platform:
-        required: true
-        type: string
+on: [push, pull_request]
 
 jobs:
-  testing:
-    runs-on: windows-latest
+  ArduinoAVR:
+    uses: ./.github/workflows/Test-ArduinoAVR.yml
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+  ArduinoSAMD:
+    uses: ./.github/workflows/Test-ArduinoSAMD.yml
 
-      - name: Setup Arduino CLI
-        uses: arduino/setup-arduino-cli@v2
+  ATTinyCore:
+    uses: ./.github/workflows/Test-ATTinyCore.yml
 
-      - name: Install platform
-        run: |
-          arduino-cli config init
-          arduino-cli config add board_manager.additional_urls https://arduino.esp8266.com/stable/package_esp8266com_index.json
-          arduino-cli config add board_manager.additional_urls https://drazzy.com/package_drazzy.com_index.json
-          arduino-cli config add board_manager.additional_urls https://github.com/stm32duino/BoardManagerFiles/raw/main/package_stmicroelectronics_index.json
-          arduino-cli config dump
+  ESP32:
+    uses: ./.github/workflows/Test-ESP32.yml
 
-          arduino-cli core update-index
-          arduino-cli core install ${{ inputs.platform }}
+  ESP8266:
+    uses: ./.github/workflows/Test-ESP8266.yml
 
-      - name: Install Ninja
-        id: ninja
-        run: |
-            $releaseUrl = "https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-win.zip"
-            $expectedHash = "F550FEC705B6D6FF58F2DB3C374C2277A37691678D6ABA463ADCBB129108467A"
+  STM32:
+    uses: ./.github/workflows/Test-STM32.yml
 
-            Invoke-WebRequest -Uri $releaseUrl -OutFile ninja.zip
-            Expand-Archive -Path ninja.zip -DestinationPath ninja
-
-            $actualHash = (Get-FileHash -Path ninja.zip -Algorithm SHA256).Hash
-            if ($actualHash -ne $expectedHash) { exit 1 }
-
-            echo "PATH=$PWD/ninja;$env:PATH" >> $env:GITHUB_ENV
-
-      - name: Configure test suite
-        run: |
-          mkdir test
-          cd test
-          cmake -G Ninja ..
-
-      - name: Run the test suite
-        run: |
-          ctest `
-            --build-config Debug --test-dir test `
-            --parallel --verbose --label-regex "^${{ inputs.platform }}:" `
-            --output-junit test-results.xml
-
-      - name: Produce test summary
-        uses: test-summary/action@v2
-        if:   always()
-        with:
-          paths: "**/test-results.xml"
-
-      - name: Upload generated binaries
-        uses: actions/upload-artifact@v4
-        with:
-          name: binaries
-          path: |
-            test/**/*.elf
-            test/**/*.bin
-            test/**/*.hex

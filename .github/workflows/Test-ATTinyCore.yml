@@ -1,8 +1,14 @@
 name: ATTiny Core
-on: [push, pull_request]
+
+on:
+  workflow_call:
+    inputs:
+      dummy:
+        required: false
+        type: boolean
 
 jobs:
   call-workflow:
-    uses: ./.github/workflows/IntegrationTests.yml
+    uses: ./.github/workflows/RunTestSuite.yml
     with:
       platform: ATTinyCore:avr
