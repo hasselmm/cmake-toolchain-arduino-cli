@@ -821,6 +821,9 @@ message(STATUS "Configuring Arduino for board id ${ARDUINO_BOARD}")
 message(TRACE  "  in ${CMAKE_BINARY_DIR}")
 message(TRACE  "  from ${CMAKE_PARENT_LIST_FILE}")
 
+cmake_path(GET CMAKE_CURRENT_LIST_FILE PARENT_PATH ARDUINO_TOOLCHAIN_DIR) # <------ register "Arduino" as CMake platform
+list(APPEND CMAKE_MODULE_PATH ${ARDUINO_TOOLCHAIN_DIR})
+
 __arduino_find_arduino_cli() # <----------------------------------------------------------- find components and settings
 __arduino_find_board_details(EXPANDED)
 __arduino_find_board_details(UNEXPANDED)
@@ -883,8 +886,8 @@ list( # <-----------------------------------------------------------------------
 
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)                     # try_compile() doesn't provide setup() and loop()
 
-cmake_path(GET CMAKE_CURRENT_LIST_FILE PARENT_PATH ARDUINO_TOOLCHAIN_DIR) # <---------- really use ".o" for object files
-set(CMAKE_USER_MAKE_RULES_OVERRIDE "${ARDUINO_TOOLCHAIN_DIR}/Arduino/RulesOverride.cmake")
+set(CMAKE_USER_MAKE_RULES_OVERRIDE # <------------------ align object and library filenames with Arduino for convenience
+    "${ARDUINO_TOOLCHAIN_DIR}/Arduino/RulesOverride.cmake")
 
 if (CMAKE_PARENT_LIST_FILE MATCHES "CMakeSystem\\.cmake$") # <----------------- define additonal API, additional targets
     if (NOT CMAKE_PROJECT_NAME STREQUAL ArduinoCore) # FIXME Rather check for __ARDUINO_CORE_FILEPATH

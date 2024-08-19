@@ -5,6 +5,7 @@ enable_testing()
 add_custom_target(
     toolchain SOURCES
     toolchain/Arduino/RulesOverride.cmake
+    toolchain/Platform/Arduino.cmake
     toolchain/arduino-cli-toolchain.cmake
 )
 
