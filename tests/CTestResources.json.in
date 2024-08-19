@@ -1,6 +1,6 @@
 {
   "version": {"major": 1, "minor": 0},
   "local": [{
-    "cpu-cores": [{"id": "0", "slots": ${_logical_cores} }]
+    "cpu_cores": [{"id": "0", "slots": ${_logical_cores} }]
   }]
 }

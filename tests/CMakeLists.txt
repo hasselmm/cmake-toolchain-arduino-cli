@@ -40,7 +40,7 @@ function(arduino_cli_toolchain_add_test NAME)
         set_tests_properties(
             "${_test_name}/configure" PROPERTIES
             FIXTURES_SETUP "${_test_name}/configure"
-            RESOURCE_GROUPS "cpu-cores:1"
+            RESOURCE_GROUPS "cpu_cores:1"
             DISABLED "${_test_disabled}"
             LABELS "${_board_name}")
 
@@ -57,7 +57,7 @@ function(arduino_cli_toolchain_add_test NAME)
             "${_test_name}/reconfigure" PROPERTIES
             FIXTURES_REQUIRED "${_test_name}/configure"
             FIXTURES_SETUP "${_test_name}/reconfigure"
-            RESOURCE_GROUPS "cpu-cores:1"
+            RESOURCE_GROUPS "cpu_cores:1"
             DISABLED "${_test_disabled}"
             LABELS "${_board_name}")
 
@@ -69,7 +69,7 @@ function(arduino_cli_toolchain_add_test NAME)
         set_tests_properties(
             "${_test_name}/build" PROPERTIES
             FIXTURES_REQUIRED "${_test_name}/reconfigure"
-            RESOURCE_GROUPS "cpu-cores:${_logical_cores}"
+            RESOURCE_GROUPS "cpu_cores:${_logical_cores}"
             DISABLED "${_test_disabled}"
             LABELS "${_board_name}")
     endforeach()
