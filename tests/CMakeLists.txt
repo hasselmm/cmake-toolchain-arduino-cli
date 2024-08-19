@@ -18,6 +18,8 @@ function(arduino_cli_toolchain_add_test NAME)
             WORKING_DIRECTORY "${_workdir}"
 
             COMMAND "${CMAKE_COMMAND}"
+                --profiling-format=google-trace
+                --profiling-output=configure-trace.json
                 --toolchain "${CMAKE_SOURCE_DIR}/toolchain/arduino-cli-toolchain.cmake"
                 -S "${CMAKE_CURRENT_SOURCE_DIR}/${NAME}" -G "${CMAKE_GENERATOR}"
                 -D "ARDUINO_BOARD:STRING=${_board_name}"
@@ -31,7 +33,11 @@ function(arduino_cli_toolchain_add_test NAME)
         add_test( # <-------------------------------------------------------- verify that CMake can be run a second time
             NAME "${_test_name}/reconfigure"
             WORKING_DIRECTORY "${_workdir}"
-            COMMAND "${CMAKE_COMMAND}" -S "${CMAKE_CURRENT_SOURCE_DIR}/${NAME}")
+
+            COMMAND "${CMAKE_COMMAND}"
+                --profiling-format=google-trace
+                --profiling-output=reconfigure-trace.json
+                -S "${CMAKE_CURRENT_SOURCE_DIR}/${NAME}")
 
         set_tests_properties(
             "${_test_name}/reconfigure" PROPERTIES
