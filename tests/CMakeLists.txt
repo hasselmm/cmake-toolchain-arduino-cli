@@ -1,5 +1,9 @@
 include(platforms.cmake)
 
+cmake_host_system_information(RESULT _logical_cores QUERY NUMBER_OF_LOGICAL_CORES)
+set(CTEST_RESOURCE_SPEC_FILE "${CMAKE_BINARY_DIR}/CTestResources.json")
+configure_file(CTestResources.json.in "${CTEST_RESOURCE_SPEC_FILE}")
+
 function(arduino_cli_toolchain_add_test NAME)
     cmake_parse_arguments(_TEST "" "" "SKIP" ${ARGN})
 
@@ -36,6 +40,7 @@ function(arduino_cli_toolchain_add_test NAME)
         set_tests_properties(
             "${_test_name}/configure" PROPERTIES
             FIXTURES_SETUP "${_test_name}/configure"
+            RESOURCE_GROUPS "cpu-cores:1"
             DISABLED "${_test_disabled}"
             LABELS "${_board_name}")
 
@@ -52,6 +57,7 @@ function(arduino_cli_toolchain_add_test NAME)
             "${_test_name}/reconfigure" PROPERTIES
             FIXTURES_REQUIRED "${_test_name}/configure"
             FIXTURES_SETUP "${_test_name}/reconfigure"
+            RESOURCE_GROUPS "cpu-cores:1"
             DISABLED "${_test_disabled}"
             LABELS "${_board_name}")
 
@@ -63,6 +69,7 @@ function(arduino_cli_toolchain_add_test NAME)
         set_tests_properties(
             "${_test_name}/build" PROPERTIES
             FIXTURES_REQUIRED "${_test_name}/reconfigure"
+            RESOURCE_GROUPS "cpu-cores:${_logical_cores}"
             DISABLED "${_test_disabled}"
             LABELS "${_board_name}")
     endforeach()
