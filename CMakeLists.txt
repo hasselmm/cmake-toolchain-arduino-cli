@@ -17,13 +17,14 @@ add_custom_target(
 
 add_custom_target(
     github SOURCES
-    .github/workflows/IntegrationTests.yml
-    .github/workflows/Test-ATTinyCore.yml
-    .github/workflows/Test-ArduinoAVR.yml
-    .github/workflows/Test-ArduinoSAMD.yml
-    .github/workflows/Test-ESP32.yml
-    .github/workflows/Test-ESP8266.yml
-    .github/workflows/Test-STM32.yml
+    .github/workflows/badge-arduino-avr.yml
+    .github/workflows/badge-arduino-samd.yml
+    .github/workflows/badge-attinycore.yml
+    .github/workflows/badge-esp32.yml
+    .github/workflows/badge-esp8266.yml
+    .github/workflows/badge-stm32.yml
+    .github/workflows/run-testsuite.yml
+    .github/workflows/main.yml
     .github/FUNDING.yml
     README.md
     LICENSE

@@ -7,8 +7,15 @@ on:
         required: true
         type: string
 
+      badge:
+        required: true
+        type: string
+
 jobs:
   testing:
+    permissions:
+      actions: write
+
     runs-on: windows-latest
 
     steps:
@@ -64,13 +71,41 @@ jobs:
 
       - name: Prepare upload of build artifacts
         run: |
-          echo "suffix=${{ inputs.platform }}".replace(":", "-") >> $env:GITHUB_ENV
+          echo "platform=${{ inputs.platform }}".replace(":", "-") >> $env:GITHUB_ENV
 
       - name: Upload generated binaries
         uses: actions/upload-artifact@v4
+        if:   always()
         with:
-          name: binaries-${{ env.suffix }}
+          name: binaries-${{ env.platform }}
           path: |
             test/**/*.elf
             test/**/*.bin
             test/**/*.hex
+
+      - name: Update status badge
+        if:   always()
+        run: |
+          $payload = @"
+          {
+            "ref": "${{ github.ref }}",
+            "inputs": { "status": "${{ job.status }}" }
+          }
+          "@
+
+          $token = ConvertTo-SecureString "${{ secrets.GITHUB_TOKEN }}" -AsPlainText -Force
+
+          $response = Invoke-WebRequest `
+            -Uri "https://api.github.com/repos/${{ github.repository }}/actions/workflows/badge-${{ inputs.badge }}.yml/dispatches" `
+            -Method "POST" -Body $payload -ContentType "application/json" `
+            -Authentication "Bearer" -Token $token
+
+          if ($response.StatusCode -ne 204) {
+            echo "The REST call to update the badge has failed."
+            exit 1
+          } elseif ("${{ job.status }}" -eq "failure") {
+            echo "The test suite has failed."
+            exit 1
+          } else {
+            echo "The test suite succeeded."
+          }

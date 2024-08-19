@@ -1,0 +1,15 @@
+name: ESP8266
+
+on:
+  workflow_dispatch:
+    inputs:
+      status:
+        required: true
+        type: string
+
+jobs:
+  create-badge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check result
+        run: test "${{ inputs.status }}" = "success"

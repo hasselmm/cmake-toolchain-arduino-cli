@@ -1,0 +1,46 @@
+name: Integration Tests
+on: [push, pull_request]
+
+jobs:
+  test-arduino-avr:
+    name: Arduino/AVR
+    uses: ./.github/workflows/run-testsuite.yml
+    with:
+      platform: arduino:avr
+      badge: arduino-avr
+
+  test-arduino-samd:
+    name: Arduino/SAM D
+    uses: ./.github/workflows/run-testsuite.yml
+    with:
+      platform: arduino:samd
+      badge: arduino-samd
+
+  test-attinycore:
+    name: ATTinyCore
+    uses: ./.github/workflows/run-testsuite.yml
+    with:
+      platform: ATTinyCore:avr
+      badge: attinycore
+
+  test-esp32:
+    name: ESP32
+    uses: ./.github/workflows/run-testsuite.yml
+    with:
+      platform: esp32:esp32
+      badge: esp32
+
+  test-esp8266:
+    name: ESP8266
+    uses: ./.github/workflows/run-testsuite.yml
+    with:
+      platform: esp8266:esp8266
+      badge: esp8266
+
+  test-stm32:
+    name: STM32/Nucleo64
+    uses: ./.github/workflows/run-testsuite.yml
+    with:
+      platform: STMicroelectronics:stm32
+      badge: stm32
+
