@@ -33,14 +33,14 @@ Check ["ready for public announcement"][milestone-2] to see what's missing.
 
 The following Arduino platforms are tested automatically:
 
-| Platform                                                                             | Status                                               |
-| ------------------------------------------------------------------------------------ | ---------------------------------------------------: |
-| [Arduino Core for AVR boards](https://github.com/arduino/ArduinoCore-avr)            | [![Arduino/AVR   ][ArduinoAVR.svg] ][workflows/main] |
-| [Arduino Core for SAMD21 CPU](https://github.com/arduino/ArduinoCore-samd)           | [![Arduino/SAM D ][ArduinoSAMD.svg]][workflows/main] |
-| [ATTinyCore Universal for ATtiny devices](https://github.com/SpenceKonde/ATTinyCore) | [![ATTinyCore    ][ATTinyCore.svg] ][workflows/main] |
-| [Arduino Core for ESP32 boards](https://github.com/arduino/arduino-esp32)            | [![ESP32         ][ESP32.svg]      ][workflows/main] |
-| [Arduino Core for ESP8266 boards](https://github.com/esp8266/Arduino)                | [![ESP8266       ][ESP8266.svg]    ][workflows/main] |
-| [Arduino Core for STM32 boards](https://github.com/stm32duino/Arduino_Core_STM32)    | [![STM32/Nucleo64][STM32.svg]      ][workflows/main] |
+| Platform                                               | Status                                                    |
+| ------------------------------------------------------ | --------------------------------------------------------: |
+| [Arduino Core for AVR boards][arduino-avr]             | [![Status: AVR    ][arduino-avr.svg]    ][workflows/main] |
+| [Arduino Core for ESP32 boards][arduino-esp32]         | [![Status: ESP32  ][arduino-esp32.svg]  ][workflows/main] |
+| [Arduino Core for ESP8266 boards][arduino-esp8266]     | [![Status: ESP8266][arduino-esp8266.svg]][workflows/main] |
+| [Arduino Core for SAMD21 boards][arduino-samd]         | [![Status: SAM D  ][arduino-samd.svg]   ][workflows/main] |
+| [Arduino Core for STM32 boards][arduino-stm32]         | [![Status: STM32  ][arduino-stm32.svg]  ][workflows/main] |
+| [ATTinyCore Universal for ATtiny devices][attiny-core] | [![Status: ATtiny ][attiny-core.svg]    ][workflows/main] |
 
 Anyway, if you got some spare time, feel free to try out, to test, to give feedback,
 to contribute.
@@ -93,13 +93,21 @@ This project would not have been possible without all the previous hard work
 I took good inspiration from it, especially when it comes to making CMake's initial
 compiler detection accept Arduinos very special binary layout.
 
+<!-- The following are the link reference definitions used in this document -->
 
-[ArduinoAVR.svg]:  https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/badge-arduino-avr.yml/badge.svg
-[ArduinoSAMD.svg]: https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/badge-arduino-samd.yml/badge.svg
-[ATTinyCore.svg]:  https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/badge-attinycore.yml/badge.svg
-[ESP32.svg]:       https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/badge-esp32.yml/badge.svg
-[ESP8266.svg]:     https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/badge-esp8266.yml/badge.svg
-[STM32.svg]:       https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/badge-stm32.yml/badge.svg
-[workflows/main]:  https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/main.yml
+[arduino-avr]:          https://github.com/arduino/ArduinoCore-avr
+[arduino-samd]:         https://github.com/arduino/ArduinoCore-samd
+[arduino-esp32]:        https://github.com/arduino/arduino-esp32
+[arduino-esp8266]:      https://github.com/esp8266/Arduino
+[arduino-stm32]:        https://github.com/stm32duino/Arduino_Core_STM32
+[attiny-core]:          https://github.com/SpenceKonde/ATTinyCore
 
-[milestone-2]:     https://github.com/hasselmm/cmake-toolchain-arduino-cli/milestone/2
+[arduino-avr.svg]:      https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/badge-arduino-avr.yml/badge.svg
+[arduino-esp32.svg]:    https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/badge-esp32.yml/badge.svg
+[arduino-esp8266.svg]:  https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/badge-esp8266.yml/badge.svg
+[arduino-samd.svg]:     https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/badge-arduino-samd.yml/badge.svg
+[arduino-stm32.svg]:    https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/badge-stm32.yml/badge.svg
+[attiny-core.svg]:      https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/badge-attinycore.yml/badge.svg
+[workflows/main]:       https://github.com/hasselmm/cmake-toolchain-arduino-cli/actions/workflows/main.yml
+
+[milestone-2]:          https://github.com/hasselmm/cmake-toolchain-arduino-cli/milestone/2
