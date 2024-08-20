@@ -6,8 +6,8 @@ add_custom_target(
     toolchain SOURCES
     toolchain/Arduino/RulesOverride.cmake
     toolchain/Platform/Arduino.cmake
-    toolchain/arduino-cli-toolchain.cmake
-)
+    toolchain/Templates/ArduinoLibraryCMakeLists.txt.in
+    toolchain/arduino-cli-toolchain.cmake)
 
 add_custom_target(
     tools SOURCES
