@@ -19,13 +19,6 @@ file before *(— famous last words)*.
 
 ## Status
 
-[![Arduino/AVR   ][ArduinoAVR.svg] ][workflows/main]
-[![Arduino/SAM D ][ArduinoSAMD.svg]][workflows/main]
-[![ATTinyCore    ][ATTinyCore.svg] ][workflows/main]
-[![ESP32         ][ESP32.svg]      ][workflows/main]
-[![ESP8266       ][ESP8266.svg]    ][workflows/main]
-[![STM32/Nucleo64][STM32.svg]      ][workflows/main]
-
 This project is in **early development**.
 So far nothing more than a fairly successful proof of concept.
 
@@ -37,6 +30,17 @@ So far nothing more than a fairly successful proof of concept.
 - Many more problems, I guess...
 
 Check ["ready for public announcement"][milestone-2] to see what's missing.
+
+The following Arduino platforms are tested automatically:
+
+| Platform                                                                             | Status                                               |
+| ------------------------------------------------------------------------------------ | ---------------------------------------------------: |
+| [Arduino Core for AVR boards](https://github.com/arduino/ArduinoCore-avr)            | [![Arduino/AVR   ][ArduinoAVR.svg] ][workflows/main] |
+| [Arduino Core for SAMD21 CPU](https://github.com/arduino/ArduinoCore-samd)           | [![Arduino/SAM D ][ArduinoSAMD.svg]][workflows/main] |
+| [ATTinyCore Universal for ATtiny devices](https://github.com/SpenceKonde/ATTinyCore) | [![ATTinyCore    ][ATTinyCore.svg] ][workflows/main] |
+| [Arduino Core for ESP32 boards](https://github.com/arduino/arduino-esp32)            | [![ESP32         ][ESP32.svg]      ][workflows/main] |
+| [Arduino Core for ESP8266 boards](https://github.com/esp8266/Arduino)                | [![ESP8266       ][ESP8266.svg]    ][workflows/main] |
+| [Arduino Core for STM32 boards](https://github.com/stm32duino/Arduino_Core_STM32)    | [![STM32/Nucleo64][STM32.svg]      ][workflows/main] |
 
 Anyway, if you got some spare time, feel free to try out, to test, to give feedback,
 to contribute.
