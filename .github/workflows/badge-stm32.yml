@@ -1,4 +1,4 @@
-name: STM32/Nucleo64
+name: Status for STM32/Nucleo64
 
 on:
   workflow_dispatch:
@@ -8,8 +8,7 @@ on:
         type: string
 
 jobs:
-  create-badge:
+  update-status-badge:
     runs-on: ubuntu-latest
     steps:
-      - name: Check result
-        run: test "${{ inputs.status }}" = "success"
+      - run: test "${{ inputs.status }}" = "success"
