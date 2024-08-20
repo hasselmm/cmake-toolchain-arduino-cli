@@ -532,7 +532,9 @@ function(__arduino_find_board_details MODE)
     if (NOT _property_list)
         string(REPLACE ";" "\\;" _properties "${_properties}") # <------------------ split into lines; preserving semicolons
         string(REGEX REPLACE "[ \t\r]*\n" ";" _property_list "${_properties}")
+    endif()
 
+    if (NOT _use_property_cache)
         list(LENGTH _property_list _count)
         message(STATUS "  ${_count} properties found")
     endif()
@@ -600,8 +602,11 @@ function(__arduino_find_libraries)
     endif()
 
     string(JSON _installed_libraries GET "${_json}" installed_libraries) # <-------------- parse the library information
-    string(JSON _count LENGTH "${_installed_libraries}")
-    message(STATUS "  ${_count} libraries found")
+
+    if (NOT _use_library_cache)
+        string(JSON _count LENGTH "${_installed_libraries}")
+        message(STATUS "  ${_count} libraries found")
+    endif()
 
     set(__ARDUINO_INSTALLED_LIBRARIES       "${_installed_libraries}"    PARENT_SCOPE)
     set(__ARDUINO_INSTALLED_LIBRARIES_CACHE "${_arduino_cache_filepath}" PARENT_SCOPE)
