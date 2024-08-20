@@ -460,20 +460,6 @@ endfunction()
 # ======================================================================================================================
 
 # ----------------------------------------------------------------------------------------------------------------------
-# Finds the `arduini-cli` tool which is the entire toolchain file's backend.
-# ----------------------------------------------------------------------------------------------------------------------
-function(__arduino_find_arduino_cli)
-    find_program(
-        ARDUINO_CLI_EXECUTABLE
-        arduino-cli REQUIRED
-
-        HINTS
-            [HKLM/SOFTWARE/Arduino CLI;InstallDir]
-            "$ENV{PROGRAMFILES}/Arduino CLI"
-        )
-endfunction()
-
-# ----------------------------------------------------------------------------------------------------------------------
 # Collects build properties for the current board from arduino-cli,
 # and stores them in prefixed CMake variables.
 #
@@ -844,8 +830,12 @@ message(TRACE  "  from ${CMAKE_PARENT_LIST_FILE}")
 cmake_path(GET CMAKE_CURRENT_LIST_FILE PARENT_PATH ARDUINO_TOOLCHAIN_DIR) # <------ register "Arduino" as CMake platform
 list(APPEND CMAKE_MODULE_PATH ${ARDUINO_TOOLCHAIN_DIR})
 
-__arduino_find_arduino_cli() # <----------------------------------------------------------- find components and settings
-__arduino_find_board_details(EXPANDED)
+find_program( # <-------------------------------------------------------------------------------------- find android-cli
+    ARDUINO_CLI_EXECUTABLE arduino-cli REQUIRED HINTS
+    [HKLM/SOFTWARE/Arduino CLI;InstallDir]
+    "$ENV{PROGRAMFILES}/Arduino CLI")
+
+__arduino_find_board_details(EXPANDED) # <----------------------------------- collect properties and installed libraries
 __arduino_find_board_details(UNEXPANDED)
 __arduino_find_libraries()
 
