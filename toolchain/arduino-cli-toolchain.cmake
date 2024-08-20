@@ -653,7 +653,7 @@ function(__arduino_add_import_library NAME SOURCE_DIR) # [SOURCE_DIR...]
 
     list(LENGTH _library_sources _source_file_count)
     list(LENGTH _library_directories _source_dir_count)
-    message(STATUS "${_source_file_count} source files found for ${_target} in ${_source_dir_count} directories")
+    message(STATUS "  ${_source_file_count} source files found for ${_target} in ${_source_dir_count} directories")
 
     list(JOIN _library_sources     "\"\n    \"" _quoted_library_sources) # <--------- prepare CMake to build out of tree
     list(JOIN _library_directories "\"\n    \"" _quoted_library_directories)
