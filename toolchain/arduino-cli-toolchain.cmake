@@ -613,6 +613,33 @@ function(__arduino_find_libraries)
 endfunction()
 
 # ======================================================================================================================
+# Internal utility functions that inspect CMake targets.
+# ======================================================================================================================
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Finds all C, C++ and Assembler sources in `DIRECTORY`, and lists them in `OUTPUT_VARIABLE`.
+# ----------------------------------------------------------------------------------------------------------------------
+function(__arduino_collect_source_files OUTPUT_VARIABLE DIRECTORY) # [DIRECTORY...]
+    unset(_glob_pattern_list)
+
+    foreach(_dirpath IN ITEMS "${DIRECTORY}" LISTS ARGN)
+        list(APPEND _glob_pattern_list
+            "${_dirpath}/*.[cC]"
+            "${_dirpath}/*.[cC][cC]"
+            "${_dirpath}/*.[cC][pP][pP]"
+            "${_dirpath}/*.[cC][xX][xX]"
+            "${_dirpath}/*.[hH]"
+            "${_dirpath}/*.[hH][hH]"
+            "${_dirpath}/*.[hH][pP][pP]"
+            "${_dirpath}/*.[hH][xX][xX]"
+            "${_dirpath}/*.[sS]")
+    endforeach()
+
+    file(GLOB_RECURSE _source_file_list ${_glob_pattern_list})
+    set("${OUTPUT_VARIABLE}" ${_source_file_list} PARENT_SCOPE)
+endfunction()
+
+# ======================================================================================================================
 # Internal utility functions that manipulate CMake targets.
 # ======================================================================================================================
 
@@ -634,22 +661,7 @@ function(__arduino_add_import_library NAME SOURCE_DIR) # [SOURCE_DIR...]
     list(REMOVE_DUPLICATES _library_directories)
     list(SORT _library_directories)
 
-    set(_library_glob_patterns) # <-------------------------------------------------- collect the library's source files
-
-    foreach(_dirpath IN LISTS _library_directories)
-        list(APPEND _library_glob_patterns
-            "${_dirpath}/*.[cC]"
-            "${_dirpath}/*.[cC][cC]"
-            "${_dirpath}/*.[cC][pP][pP]"
-            "${_dirpath}/*.[cC][xX][xX]"
-            "${_dirpath}/*.[hH]"
-            "${_dirpath}/*.[hH][hH]"
-            "${_dirpath}/*.[hH][pP][pP]"
-            "${_dirpath}/*.[hH][xX][xX]"
-            "${_dirpath}/*.[sS]")
-    endforeach()
-
-    file(GLOB_RECURSE _library_sources ${_library_glob_patterns})
+    __arduino_collect_source_files(_library_sources ${_library_directories}) # <----- collect the library's source files
 
     list(LENGTH _library_sources _source_file_count)
     list(LENGTH _library_directories _source_dir_count)
