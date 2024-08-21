@@ -58,6 +58,9 @@ function(__arduino_preprocess_sketches SOURCE_DIRPATH MAIN_FILENAME OTHER_FILENA
 
     file(WRITE "${OUTPUT_FILEPATH}" "${_combined_text}")
 
+    set(ENV{TMP} "${OUTPUT_DIRPATH}/ctags/first-run")       # work around Arduino's ctags having problems with tempfiles
+    file(MAKE_DIRECTORY "$ENV{TMP}")
+
     __arduino_ctags(_symbols "${OUTPUT_FILEPATH}" --line-directives=no) # <-------- find first declaration in merged C++
 
     list(GET _symbols 0 _first_symbol)
@@ -68,6 +71,9 @@ function(__arduino_preprocess_sketches SOURCE_DIRPATH MAIN_FILENAME OTHER_FILENA
     else()
         math(EXPR _line_before_first_symbol "${CMAKE_MATCH_1} - 2")
     endif()
+
+    set(ENV{TMP} "${OUTPUT_DIRPATH}/ctags/second-run")      # work around Arduino's ctags having problems with tempfiles
+    file(MAKE_DIRECTORY "$ENV{TMP}")
 
     __arduino_ctags(_symbols "${OUTPUT_FILEPATH}" --line-directives=yes) # <------- extract declarations from merged C++
 
