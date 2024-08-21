@@ -141,6 +141,40 @@ macro(__arduino_reject_unparsed_arguments PREFIX)
     endif()
 endmacro()
 
+# ----------------------------------------------------------------------------------------------------------------------
+# Adds a CMake script to serve as code generator.
+# This script is run directly during configuration, but also as custom command during regular builds.
+# ----------------------------------------------------------------------------------------------------------------------
+function(__arduino_add_code_generator)
+    set(_single_values
+        COMMENT             # comment when executing directly or as custom command
+        CONFIG_TEMPLATE     # the template file for passing arguments to SCRIPT_FILEPATH
+        CONFIG_FILEPATH     # output filepath for the processed CONFIG_TEMPLATE
+        SCRIPT_FILEPATH     # the script to run
+        SCRIPT_OUTPUT)      # the file file(s) the script generates
+    set(_multiple_values DEPENDS)
+
+    cmake_parse_arguments(_CODEGEN "" "${_single_values}" "${_multiple_values}" ${ARGN})
+    __arduino_reject_unparsed_arguments(_CODEGEN)
+
+    configure_file("${_CODEGEN_CONFIG_TEMPLATE}" "${_CODEGEN_CONFIG_FILEPATH}")
+
+    set(_command "${CMAKE_COMMAND}"
+        -D "CMAKE_MESSAGE_LOG_LEVEL=${CMAKE_MESSAGE_LOG_LEVEL}"
+        -D "CMAKE_MODULE_PATH=${ARDUINO_TOOLCHAIN_DIR}"
+        -D "ARGUMENTS=${_CODEGEN_CONFIG_FILEPATH}"
+        -P "${_CODEGEN_SCRIPT_FILEPATH}")
+
+    add_custom_command(
+        OUTPUT  "${_CODEGEN_SCRIPT_OUTPUT}"
+        DEPENDS "${_CODEGEN_SCRIPT_FILEPATH}" ${_CODEGEN_DEPENDS}
+        COMMENT "${_CODEGEN_COMMENT}"
+        COMMAND  ${_command})
+
+    message(STATUS "${_CODEGEN_COMMENT}")
+    execute_process(COMMAND ${_command} COMMAND_ERROR_IS_FATAL ANY)
+endfunction()
+
 # ======================================================================================================================
 # Internal utility functions that process Arduino's build properties
 # ======================================================================================================================
@@ -460,20 +494,6 @@ endfunction()
 # ======================================================================================================================
 
 # ----------------------------------------------------------------------------------------------------------------------
-# Finds the `arduini-cli` tool which is the entire toolchain file's backend.
-# ----------------------------------------------------------------------------------------------------------------------
-function(__arduino_find_arduino_cli)
-    find_program(
-        ARDUINO_CLI_EXECUTABLE
-        arduino-cli REQUIRED
-
-        HINTS
-            [HKLM/SOFTWARE/Arduino CLI;InstallDir]
-            "$ENV{PROGRAMFILES}/Arduino CLI"
-        )
-endfunction()
-
-# ----------------------------------------------------------------------------------------------------------------------
 # Collects build properties for the current board from arduino-cli,
 # and stores them in prefixed CMake variables.
 #
@@ -532,7 +552,9 @@ function(__arduino_find_board_details MODE)
     if (NOT _property_list)
         string(REPLACE ";" "\\;" _properties "${_properties}") # <------------------ split into lines; preserving semicolons
         string(REGEX REPLACE "[ \t\r]*\n" ";" _property_list "${_properties}")
+    endif()
 
+    if (NOT _use_property_cache)
         list(LENGTH _property_list _count)
         message(STATUS "  ${_count} properties found")
     endif()
@@ -600,11 +622,65 @@ function(__arduino_find_libraries)
     endif()
 
     string(JSON _installed_libraries GET "${_json}" installed_libraries) # <-------------- parse the library information
-    string(JSON _count LENGTH "${_installed_libraries}")
-    message(STATUS "  ${_count} libraries found")
+
+    if (NOT _use_library_cache)
+        string(JSON _count LENGTH "${_installed_libraries}")
+        message(STATUS "  ${_count} libraries found")
+    endif()
 
     set(__ARDUINO_INSTALLED_LIBRARIES       "${_installed_libraries}"    PARENT_SCOPE)
     set(__ARDUINO_INSTALLED_LIBRARIES_CACHE "${_arduino_cache_filepath}" PARENT_SCOPE)
+endfunction()
+
+# ======================================================================================================================
+# Internal utility functions that inspect CMake targets.
+# ======================================================================================================================
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Finds all C, C++ and Assembler sources in `DIRECTORY`, and lists them in `OUTPUT_VARIABLE`.
+# ----------------------------------------------------------------------------------------------------------------------
+function(__arduino_collect_source_files OUTPUT_VARIABLE DIRECTORY) # [DIRECTORY...]
+    unset(_glob_pattern_list)
+
+    foreach(_dirpath IN ITEMS "${DIRECTORY}" LISTS ARGN)
+        list(APPEND _glob_pattern_list
+            "${_dirpath}/*.[cC]"
+            "${_dirpath}/*.[cC][cC]"
+            "${_dirpath}/*.[cC][pP][pP]"
+            "${_dirpath}/*.[cC][xX][xX]"
+            "${_dirpath}/*.[hH]"
+            "${_dirpath}/*.[hH][hH]"
+            "${_dirpath}/*.[hH][pP][pP]"
+            "${_dirpath}/*.[hH][xX][xX]"
+            "${_dirpath}/*.[sS]")
+    endforeach()
+
+    file(GLOB_RECURSE _source_file_list ${_glob_pattern_list})
+    set("${OUTPUT_VARIABLE}" ${_source_file_list} PARENT_SCOPE)
+endfunction()
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Resolves the absolute filepath where arduino-cli would store `FILENAME` after processing.
+# ----------------------------------------------------------------------------------------------------------------------
+function(__arduino_resolve_preprocessed_filepath SOURCE_DIRPATH FILENAME SKETCH_DIRPATH OUTPUT_VARIABLE)
+    cmake_path(
+        ABSOLUTE_PATH FILENAME
+        BASE_DIRECTORY "${SOURCE_DIRPATH}"
+        OUTPUT_VARIABLE _absolute_filepath
+        NORMALIZE)
+
+    string(FIND "${_absolute_filepath}" "${SOURCE_DIRPATH}" _offset)
+
+    if (_offset EQUAL 0)
+        cmake_path(
+            RELATIVE_PATH _absolute_filepath
+            BASE_DIRECTORY "${SOURCE_DIRPATH}"
+            OUTPUT_VARIABLE _relative_filepath)
+
+        set("${OUTPUT_VARIABLE}" "${SKETCH_DIRPATH}/${_relative_filepath}" PARENT_SCOPE)
+    else()
+        unset("${OUTPUT_VARIABLE}" PARENT_SCOPE)
+    endif()
 endfunction()
 
 # ======================================================================================================================
@@ -623,29 +699,17 @@ function(__arduino_add_import_library NAME SOURCE_DIR) # [SOURCE_DIR...]
     set(_library_source_dir "${CMAKE_BINARY_DIR}/ArduinoFiles/${NAME}")
     set(_library_template "${ARDUINO_TOOLCHAIN_DIR}/Templates/ArduinoLibraryCMakeLists.txt.in")
     set(_library_filepath "${_library_binary_dir}/lib${_libname}.a")
-    set(_source_dir_list "${SOURCE_DIR}" ${ARGN})
 
-    set(_library_glob_patterns) # <-------------------------------------------------- collect the library's source files
+    set(_library_directories "${SOURCE_DIR}" ${ARGN})
+    list(FILTER _library_directories EXCLUDE REGEX "^ *\$")
+    list(REMOVE_DUPLICATES _library_directories)
+    list(SORT _library_directories)
 
-    foreach(_dirpath IN LISTS _library_directories)
-        if (_dirpath)
-            list(APPEND _library_glob_patterns
-                "${_dirpath}/*.[cC]"
-                "${_dirpath}/*.[cC][cC]"
-                "${_dirpath}/*.[cC][pP][pP]"
-                "${_dirpath}/*.[cC][xX][xX]"
-                "${_dirpath}/*.[hH]"
-                "${_dirpath}/*.[hH][hH]"
-                "${_dirpath}/*.[hH][pP][pP]"
-                "${_dirpath}/*.[hH][xX][xX]"
-                "${_dirpath}/*.[sS]")
-        endif()
-    endforeach()
-
-    file(GLOB_RECURSE _library_sources ${_library_glob_patterns})
+    __arduino_collect_source_files(_library_sources ${_library_directories}) # <----- collect the library's source files
 
     list(LENGTH _library_sources _source_file_count)
-    message(STATUS "${_source_file_count} source files found for ${_target}")
+    list(LENGTH _library_directories _source_dir_count)
+    message(STATUS "  ${_source_file_count} source files found for ${_target} in ${_source_dir_count} directories")
 
     list(JOIN _library_sources     "\"\n    \"" _quoted_library_sources) # <--------- prepare CMake to build out of tree
     list(JOIN _library_directories "\"\n    \"" _quoted_library_directories)
@@ -679,7 +743,7 @@ function(__arduino_add_import_library NAME SOURCE_DIR) # [SOURCE_DIR...]
         target_link_libraries("${_target}" INTERFACE Arduino::Core)
     endif()
 
-    target_include_directories("${_target}" INTERFACE ${_source_dir_list})
+    target_include_directories("${_target}" INTERFACE ${_library_directories})
     set_property(TARGET "${_target}" PROPERTY IMPORTED_LOCATION "${_library_filepath}")
     set_property(TARGET "${_target}" PROPERTY SYSTEM NO) # otherwise AVR builds will fail
 
@@ -739,6 +803,68 @@ function(__arduino_add_upload_target TARGET UPLOAD_TARGET FIRMWARE_FILENAME UPLO
 endfunction()
 
 # ----------------------------------------------------------------------------------------------------------------------
+# Proprocesses `SOURCE_FILENAME..` in `MODE`, similar like arduino-cli would do.
+# ----------------------------------------------------------------------------------------------------------------------
+function(__arduino_preprocess OUTPUT_VARIABLE OUTPUT_DIRPATH SOURCE_DIRPATH MODE SOURCE_FILENAME) # [OTHER_SKETCHES...]
+    set(OTHER_SKETCHES ${ARGN})
+
+    cmake_path(
+        ABSOLUTE_PATH SOURCE_FILENAME
+        BASE_DIRECTORY "${SOURCE_DIRPATH}"
+        OUTPUT_VARIABLE _source_filepath
+        NORMALIZE)
+
+    __arduino_resolve_preprocessed_filepath(
+        "${SOURCE_DIRPATH}" "${_source_filepath}"
+        "${OUTPUT_DIRPATH}" _output_filepath)
+
+    if (MODE STREQUAL "SKETCH")
+        string(APPEND _output_filepath ".cpp")
+    endif()
+
+    string(MD5 _filepath_hash "${_output_filepath}")
+    set(_config_filepath "${CMAKE_BINARY_DIR}/ArduinoFiles/${_target}/preprocess-config-${_filepath_hash}.cmake")
+
+    __arduino_add_code_generator(
+        SCRIPT_OUTPUT   "${_output_filepath}"
+        SCRIPT_FILEPATH "${__ARDUINO_TOOLCHAIN_PREPROCESS}"
+        CONFIG_TEMPLATE "${ARDUINO_TOOLCHAIN_DIR}/Templates/PreprocessConfig.cmake.in"
+        CONFIG_FILEPATH "${_config_filepath}"
+        COMMENT         "Preprocessing ${SOURCE_FILENAME}"
+        DEPENDS         "${_source_filepath}" ${OTHER_SKETCHES})
+
+    set("${OUTPUT_VARIABLE}" "${_output_filepath}" PARENT_SCOPE)
+endfunction()
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Preprocesses the source files of `TARGET`, similar like arduino-cli would do.
+# ----------------------------------------------------------------------------------------------------------------------
+function(__arduino_preprocess_sketch TARGET OUTPUT_DIRPATH SOURCE_DIRPATH SOURCE_FILENAME) # [SOURCE_FILENAME...]
+    set(_source_list "${SOURCE_FILENAME}" ${ARGN})
+
+    set(_sketch_list ${_source_list}) # <-------------------------------------------- collect sketches from _source_list
+    list(FILTER _sketch_list INCLUDE REGEX "${__ARDUINO_SKETCH_SUFFIX}")
+    list(PREPEND _sketch_list "${TARGET}.ino")
+    list(REMOVE_DUPLICATES _sketch_list)
+
+    __arduino_preprocess( # <----------------------------------------------------------------------- preprocess sketches
+        _preprocessed_filepath "${OUTPUT_DIRPATH}"
+        "${SOURCE_DIRPATH}" SKETCH ${_sketch_list})
+
+    target_sources("${TARGET}" PUBLIC "${_preprocessed_filepath}")
+
+    list(REMOVE_ITEM _source_list ${_sketch_list}) # <--------------------------------- preprocess regular/other sources
+
+    foreach(_filename IN LISTS _source_list)
+        __arduino_preprocess(
+            _preprocessed_filepath "${OUTPUT_DIRPATH}"
+            "${SOURCE_DIRPATH}" SOURCE "${_filename}")
+
+        target_sources("${TARGET}" PUBLIC "${_preprocessed_filepath}")
+    endforeach()
+endfunction()
+
+# ----------------------------------------------------------------------------------------------------------------------
 # Iterates all subdirectories of the project and finalizes Arduino sketches.
 # ----------------------------------------------------------------------------------------------------------------------
 function(__arduino_toolchain_finalize DIRECTORY)
@@ -747,11 +873,16 @@ function(__arduino_toolchain_finalize DIRECTORY)
         PROPERTY BUILDSYSTEM_TARGETS)
 
     foreach(_target IN LISTS _target_list)
+        get_property(_binary_dirpath TARGET "${_target}" PROPERTY BINARY_DIR)
+        get_property(_source_dirpath TARGET "${_target}" PROPERTY SOURCE_DIR)
         get_property(_source_list TARGET "${_target}" PROPERTY SOURCES)
+
+        cmake_path(ABSOLUTE_PATH _source_dirpath NORMALIZE)
+        set(_sketch_dirpath "${_binary_dirpath}/sketch")
         set(_is_sketch NO)
 
         foreach(_filename IN LISTS _source_list)
-            if (_filename MATCHES "\\.(ino|pde)\$") # <--------------------------------------- finalize Arduino sketches
+            if (_filename MATCHES "${__ARDUINO_SKETCH_SUFFIX}") # <--------------------------- finalize Arduino sketches
                 message(TRACE "Finalizing Arduino sketch ${_filename} in ${DIRECTORY}")
 
                 set_property( # <-------------------------------------- tell CMake that Arduino sketches are in fact C++
@@ -762,15 +893,27 @@ function(__arduino_toolchain_finalize DIRECTORY)
                 set_property( # <-------------------------- also tell the compiler that Arduino sketches are in fact C++
                     SOURCE "${_filename}"
                     DIRECTORY "${DIRECTORY}"
-                    APPEND PROPERTY COMPILE_OPTIONS --lang c++)
+                    APPEND PROPERTY COMPILE_OPTIONS --lang c++ --include Arduino.h)
 
                 set(_is_sketch YES) # FIXME also check target type?
             endif()
         endforeach()
 
         if (_is_sketch)
-            target_link_libraries("${_target}" PUBLIC Arduino::Core) # <---------------------------- let's be convenient
-            set_property(TARGET "${_target}" PROPERTY SUFFIX ".elf") # <----------------------- avoid pointless rebuilds
+            foreach(_filename IN LISTS _source_list)
+                set_property( # <------------------------------ disable sources as we compile from copy in sketch folder
+                    SOURCE "${_filename}"
+                    DIRECTORY "${_source_dirpath}"
+                    PROPERTY HEADER_FILE_ONLY YES)
+            endforeach()
+
+            __arduino_preprocess_sketch( # <----------------------------------------------------------- build the sketch
+                "${_target}" "${_sketch_dirpath}"
+                "${_source_dirpath}" ${_source_list})
+
+            target_link_libraries("${_target}" PUBLIC Arduino::Core)
+
+            set_property(TARGET "${_target}" PROPERTY SUFFIX ".elf") # <----------------------- build the final firmware
             __arduino_add_firmware_target("${_target}" _firmware_filename)
 
             __arduino_add_upload_target( # <-------------------------------------------------- allow to upload to device
@@ -824,10 +967,24 @@ message(TRACE  "  from ${CMAKE_PARENT_LIST_FILE}")
 cmake_path(GET CMAKE_CURRENT_LIST_FILE PARENT_PATH ARDUINO_TOOLCHAIN_DIR) # <------ register "Arduino" as CMake platform
 list(APPEND CMAKE_MODULE_PATH ${ARDUINO_TOOLCHAIN_DIR})
 
-__arduino_find_arduino_cli() # <----------------------------------------------------------- find components and settings
-__arduino_find_board_details(EXPANDED)
+set(__ARDUINO_SKETCH_SUFFIX "\\.(ino|pde)\$") # <-------------------------------------------- generally useful constants
+set(__ARDUINO_TOOLCHAIN_PREPROCESS "${ARDUINO_TOOLCHAIN_DIR}/Scripts/Preprocess.cmake")
+
+list(APPEND CMAKE_CONFIGURE_DEPENDS # <------------------------------------- rerun CMake when helper scripts are changed
+    "${__ARDUINO_TOOLCHAIN_PREPROCESS}")
+
+find_program( # <-------------------------------------------------------------------------------------- find android-cli
+    ARDUINO_CLI_EXECUTABLE arduino-cli REQUIRED HINTS
+    [HKLM/SOFTWARE/Arduino CLI;InstallDir]
+    "$ENV{PROGRAMFILES}/Arduino CLI")
+
+__arduino_find_board_details(EXPANDED) # <----------------------------------- collect properties and installed libraries
 __arduino_find_board_details(UNEXPANDED)
 __arduino_find_libraries()
+
+find_program( # <----------------------------------------------------------------------- find ctags from Arduino runtime
+    ARDUINO_CTAGS_EXECUTABLE ctags REQUIRED HINTS
+    "${ARDUINO_PROPERTIES_EXPANDED_RUNTIME_TOOLS_CTAGS_PATH}")
 
 math(EXPR ARDUINO_VERSION_MAJOR "(${ARDUINO_PROPERTIES_EXPANDED_RUNTIME_IDE_VERSION} / 10000) % 100") # <-- find version
 math(EXPR ARDUINO_VERSION_MINOR "(${ARDUINO_PROPERTIES_EXPANDED_RUNTIME_IDE_VERSION} /   100) % 100")
@@ -838,6 +995,7 @@ set(ARDUINO_VERSION "${ARDUINO_VERSION_MAJOR}.${ARDUINO_VERSION_MINOR}.${ARDUINO
 set(CMAKE_SYSTEM_NAME       "Arduino") # <----------------------------------------- tell CMake the name of this platform
 set(CMAKE_SYSTEM_VERSION    "${ARDUINO_VERSION}")
 set(CMAKE_SYSTEM_PROCESSOR  "${ARDUINO_PROPERTIES_EXPANDED_BUILD_ARCH}")
+
 
 # <---------------------------------------------------------------------------------------------------- find build rules
 arduino_get_property("recipe.S.o.pattern"         CMAKE_ASM_COMPILE_OBJECT        FULLY_EXPANDED CACHED)

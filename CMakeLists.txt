@@ -5,9 +5,12 @@ enable_testing()
 add_custom_target(
     toolchain SOURCES
     toolchain/Arduino/RulesOverride.cmake
+    toolchain/Arduino/ScriptMode.cmake
     toolchain/Platform/Arduino.cmake
-    toolchain/arduino-cli-toolchain.cmake
-)
+    toolchain/Scripts/Preprocess.cmake
+    toolchain/Templates/ArduinoLibraryCMakeLists.txt.in
+    toolchain/Templates/PreprocessConfig.cmake.in
+    toolchain/arduino-cli-toolchain.cmake)
 
 add_custom_target(
     tools SOURCES

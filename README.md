@@ -6,7 +6,7 @@ How about using `CMakeLists.txt` files as simple as this?
 
 ```CMake
 cmake_minimum_required(VERSION 3.19)
-project(CMakeBlink VERSION 0.1 LANGUAGES CXX)
+project(CMakeBlink LANGUAGES CXX)
 add_executable(CMakeBlink CMakeBlink.ino)
 ```
 
