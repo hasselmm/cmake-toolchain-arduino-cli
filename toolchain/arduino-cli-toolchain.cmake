@@ -677,6 +677,10 @@ function(__arduino_resolve_preprocessed_filepath SOURCE_DIRPATH FILENAME OUTPUT_
             BASE_DIRECTORY "${SOURCE_DIRPATH}"
             OUTPUT_VARIABLE _relative_filepath)
 
+        if (_relative_filepath MATCHES "${__ARDUINO_SKETCH_SUFFIX}")
+            string(APPEND _relative_filepath ".cpp")
+        endif()
+
         set("${OUTPUT_VARIABLE}" "${OUTPUT_DIRPATH}/${_relative_filepath}" PARENT_SCOPE)
     else()
         unset("${OUTPUT_VARIABLE}" PARENT_SCOPE)
@@ -817,10 +821,6 @@ function(__arduino_preprocess OUTPUT_VARIABLE OUTPUT_DIRPATH SOURCE_DIRPATH MODE
     __arduino_resolve_preprocessed_filepath(
         "${SOURCE_DIRPATH}" "${_source_filepath}"
         "${OUTPUT_DIRPATH}" _output_filepath)
-
-    if (MODE STREQUAL "SKETCH")
-        string(APPEND _output_filepath ".cpp")
-    endif()
 
     string(MD5 _filepath_hash "${_output_filepath}")
     set(_config_filepath "${CMAKE_BINARY_DIR}/ArduinoFiles/${_target}/preprocess-config-${_filepath_hash}.cmake")
