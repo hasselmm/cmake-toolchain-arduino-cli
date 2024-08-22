@@ -646,7 +646,7 @@ function(__arduino_collect_source_files OUTPUT_VARIABLE DIRECTORY) # [DIRECTORY.
         list(APPEND _glob_pattern_list
             "${_dirpath}/*.[cC]"
             "${_dirpath}/*.[cC][cC]"
-            "${_dirpath}/*.[cC][pP][pP]"
+            "${_dirpath}/*.[cCiItT][pP][pP]"
             "${_dirpath}/*.[cC][xX][xX]"
             "${_dirpath}/*.[hH]"
             "${_dirpath}/*.[hH][hH]"
