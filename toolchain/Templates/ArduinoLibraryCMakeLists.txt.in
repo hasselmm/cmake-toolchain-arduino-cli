@@ -10,3 +10,7 @@ add_library(
 target_include_directories(
     ${_libname} PUBLIC
     "${_quoted_library_directories}")
+
+if (NOT "${_libname}" STREQUAL "ArduinoCore")
+    target_link_libraries(${_libname} PUBLIC Arduino::Core)
+endif()

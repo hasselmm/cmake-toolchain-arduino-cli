@@ -957,7 +957,7 @@ function(__arduino_preprocess OUTPUT_VARIABLE OUTPUT_DIRPATH SOURCE_DIRPATH MODE
         "${OUTPUT_DIRPATH}" _output_filepath)
 
     string(MD5 _filepath_hash "${_output_filepath}")
-    set(_config_filepath "${CMAKE_BINARY_DIR}/ArduinoFiles/${_target}/preprocess-config-${_filepath_hash}.cmake")
+    set(_config_filepath "${CMAKE_BINARY_DIR}/ArduinoFiles/${_target}/preprocess-${_filepath_hash}.cmake")
 
     __arduino_add_code_generator(
         SCRIPT_OUTPUT   "${_output_filepath}"
@@ -994,6 +994,61 @@ function(__arduino_preprocess_sketch TARGET OUTPUT_DIRPATH SOURCE_DIRPATH SOURCE
 
         target_sources("${TARGET}" PUBLIC "${_preprocessed_filepath}")
     endforeach()
+endfunction()
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Remove obsolete files from preprocesses the sources files directory.
+# Such step is neccessary as the prebuild hooks of various cores place files in this folder to implement dynamic
+# dependency chains. Therefore this folder has to be searched for files to resolve dependencies, instead of using
+# a computed list. For this search to succeed previous build-artifacts must be removed.
+# ----------------------------------------------------------------------------------------------------------------------
+function(__arduino_remove_obsolete_sketch_files TARGET SKETCH_DIRPATH)
+    set(_source_list_cache "${CMAKE_BINARY_DIR}/ArduinoFiles/${TARGET}/sources.txt")
+
+    if (EXISTS "${_source_list_cache}") # <----------------------------------- read target SOURCE list from previous run
+        file(READ "${_source_list_cache}" _cached_source_list)
+    else()
+        unset(_cached_source_list)
+    endif()
+
+    get_property(_source_list TARGET "${TARGET}" PROPERTY SOURCES) # <---------- check if files got removed from SOURCES
+
+    list(REMOVE_DUPLICATES _source_list)
+    list(REMOVE_ITEM _cached_source_list ${_source_list})
+    file(WRITE "${_source_list_cache}" "${_source_list}")
+
+    foreach(_filename IN LISTS _cached_source_list) # <------------------- delete preprocessed files for removed SOURCES
+        __arduino_resolve_preprocessed_filepath(
+            "${_source_dirpath}" "${_filename}"
+            "${SKETCH_DIRPATH}" _sketch_filepath)
+
+        message(STATUS "Removing obsolete ${_filename}")
+        file(REMOVE "${_sketch_filepath}")
+    endforeach()
+endfunction()
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Scan the preprocessed source code of `TARGET` for #include directives to detect implicit library dependencies.
+# ----------------------------------------------------------------------------------------------------------------------
+function(__arduino_link_implicit_libraries TARGET SKETCH_DIRPATH)
+    # Can't simple use a pre-computed source file list here, but have to list files in SKETCH_DIRPATH
+    # since the pre-build hooks of some platforms place generated files in the sketch folder to enable
+    # selective linking of system libraries.
+    __arduino_remove_obsolete_sketch_files("${_target}" "${SKETCH_DIRPATH}")
+    __arduino_collect_source_files(_preprocessed_sources_list "${SKETCH_DIRPATH}")
+
+    set(_required_libraries_include "${CMAKE_BINARY_DIR}/ArduinoFiles/${_target}/libraries-include.cmake")
+    target_sources("${_target}" PRIVATE "${_required_libraries_include}")
+
+    __arduino_add_code_generator(
+        SCRIPT_OUTPUT   "${_required_libraries_include}"
+        SCRIPT_FILEPATH "${__ARDUINO_TOOLCHAIN_COLLECT_LIBRARIES}"
+        CONFIG_TEMPLATE "${ARDUINO_TOOLCHAIN_DIR}/Templates/CollectLibrariesConfig.cmake.in"
+        CONFIG_FILEPATH "${CMAKE_BINARY_DIR}/ArduinoFiles/${_target}/libraries-config.cmake"
+        COMMENT         "Collecting required libraries for ${TARGET}"
+        DEPENDS         ${_preprocessed_sources_list})
+
+    include("${_required_libraries_include}")
 endfunction()
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -1043,7 +1098,8 @@ function(__arduino_toolchain_finalize DIRECTORY)
                 "${_target}" "${_sketch_dirpath}"
                 "${_source_dirpath}" "${_source_list}")
 
-            target_link_libraries("${_target}" PUBLIC Arduino::Core)
+            target_link_libraries("${_target}" PUBLIC Arduino::Core) # <------------- link implicitly required libraries
+            __arduino_link_implicit_libraries("${_target}" "${_sketch_dirpath}")
 
             set_property(TARGET "${_target}" PROPERTY SUFFIX ".elf") # <----------------------- build the final firmware
             __arduino_add_firmware_target("${_target}" _firmware_filename)
@@ -1100,9 +1156,11 @@ cmake_path(GET CMAKE_CURRENT_LIST_FILE PARENT_PATH ARDUINO_TOOLCHAIN_DIR) # <---
 list(APPEND CMAKE_MODULE_PATH ${ARDUINO_TOOLCHAIN_DIR})
 
 set(__ARDUINO_SKETCH_SUFFIX "\\.(ino|pde)\$") # <-------------------------------------------- generally useful constants
-set(__ARDUINO_TOOLCHAIN_PREPROCESS "${ARDUINO_TOOLCHAIN_DIR}/Scripts/Preprocess.cmake")
+set(__ARDUINO_TOOLCHAIN_COLLECT_LIBRARIES "${ARDUINO_TOOLCHAIN_DIR}/Scripts/CollectLibraries.cmake")
+set(__ARDUINO_TOOLCHAIN_PREPROCESS        "${ARDUINO_TOOLCHAIN_DIR}/Scripts/Preprocess.cmake")
 
 list(APPEND CMAKE_CONFIGURE_DEPENDS # <------------------------------------- rerun CMake when helper scripts are changed
+    "${__ARDUINO_TOOLCHAIN_COLLECT_LIBRARIES}"
     "${__ARDUINO_TOOLCHAIN_PREPROCESS}")
 
 find_program( # <-------------------------------------------------------------------------------------- find android-cli
