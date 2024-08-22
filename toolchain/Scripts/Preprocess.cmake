@@ -141,8 +141,6 @@ function(__arduino_preprocess_regular_sources SOURCE_DIRPATH SOURCE_FILENAME OUT
         BASE_DIRECTORY "${SOURCE_DIRPATH}"
         OUTPUT_VARIABLE _filepath)
 
-    message(STATUS "_filepath: ${_filepath}")
-
     file(READ "${_filepath}" _text)
 
     file(WRITE "${OUTPUT_FILEPATH}"
