@@ -807,7 +807,7 @@ function(__arduino_add_upload_target TARGET UPLOAD_TARGET FIRMWARE_FILENAME UPLO
 endfunction()
 
 # ----------------------------------------------------------------------------------------------------------------------
-# Proprocesses `SOURCE_FILENAME..` in `MODE`, similar like arduino-cli would do.
+# Preprocesses `SOURCE_FILENAME..` in `MODE`, similar like arduino-cli would do.
 # ----------------------------------------------------------------------------------------------------------------------
 function(__arduino_preprocess OUTPUT_VARIABLE OUTPUT_DIRPATH SOURCE_DIRPATH MODE SOURCE_FILENAME) # [OTHER_SKETCHES...]
     set(OTHER_SKETCHES ${ARGN})
