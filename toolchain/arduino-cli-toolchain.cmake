@@ -707,7 +707,6 @@ function(__arduino_add_import_library NAME SOURCE_DIR) # [SOURCE_DIR...]
     set(_library_directories "${SOURCE_DIR}" ${ARGN})
     list(FILTER _library_directories EXCLUDE REGEX "^ *\$")
     list(REMOVE_DUPLICATES _library_directories)
-    list(SORT _library_directories)
 
     __arduino_collect_source_files(_library_sources ${_library_directories}) # <----- collect the library's source files
 
