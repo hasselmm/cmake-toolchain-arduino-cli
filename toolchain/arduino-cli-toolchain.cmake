@@ -662,7 +662,7 @@ endfunction()
 # ----------------------------------------------------------------------------------------------------------------------
 # Resolves the absolute filepath where arduino-cli would store `FILENAME` after processing.
 # ----------------------------------------------------------------------------------------------------------------------
-function(__arduino_resolve_preprocessed_filepath SOURCE_DIRPATH FILENAME SKETCH_DIRPATH OUTPUT_VARIABLE)
+function(__arduino_resolve_preprocessed_filepath SOURCE_DIRPATH FILENAME OUTPUT_DIRPATH OUTPUT_VARIABLE)
     cmake_path(
         ABSOLUTE_PATH FILENAME
         BASE_DIRECTORY "${SOURCE_DIRPATH}"
@@ -677,7 +677,7 @@ function(__arduino_resolve_preprocessed_filepath SOURCE_DIRPATH FILENAME SKETCH_
             BASE_DIRECTORY "${SOURCE_DIRPATH}"
             OUTPUT_VARIABLE _relative_filepath)
 
-        set("${OUTPUT_VARIABLE}" "${SKETCH_DIRPATH}/${_relative_filepath}" PARENT_SCOPE)
+        set("${OUTPUT_VARIABLE}" "${OUTPUT_DIRPATH}/${_relative_filepath}" PARENT_SCOPE)
     else()
         unset("${OUTPUT_VARIABLE}" PARENT_SCOPE)
     endif()
