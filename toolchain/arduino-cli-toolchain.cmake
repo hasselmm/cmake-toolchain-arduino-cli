@@ -839,10 +839,8 @@ endfunction()
 # ----------------------------------------------------------------------------------------------------------------------
 # Preprocesses the source files of `TARGET`, similar like arduino-cli would do.
 # ----------------------------------------------------------------------------------------------------------------------
-function(__arduino_preprocess_sketch TARGET OUTPUT_DIRPATH SOURCE_DIRPATH SOURCE_FILENAME) # [SOURCE_FILENAME...]
-    set(_source_list "${SOURCE_FILENAME}" ${ARGN})
-
-    set(_sketch_list ${_source_list}) # <-------------------------------------------- collect sketches from _source_list
+function(__arduino_preprocess_sketch TARGET OUTPUT_DIRPATH SOURCE_DIRPATH SOURCES)
+    set(_sketch_list ${SOURCES}) # <------------------------------------------------------ collect sketches from SOURCES
     list(FILTER _sketch_list INCLUDE REGEX "${__ARDUINO_SKETCH_SUFFIX}")
     list(PREPEND _sketch_list "${TARGET}.ino")
     list(REMOVE_DUPLICATES _sketch_list)
@@ -853,9 +851,9 @@ function(__arduino_preprocess_sketch TARGET OUTPUT_DIRPATH SOURCE_DIRPATH SOURCE
 
     target_sources("${TARGET}" PUBLIC "${_preprocessed_filepath}")
 
-    list(REMOVE_ITEM _source_list ${_sketch_list}) # <--------------------------------- preprocess regular/other sources
+    list(REMOVE_ITEM SOURCES ${_sketch_list}) # <-------------------------------------- preprocess regular/other sources
 
-    foreach(_filename IN LISTS _source_list)
+    foreach(_filename IN LISTS SOURCES)
         __arduino_preprocess(
             _preprocessed_filepath "${OUTPUT_DIRPATH}"
             "${SOURCE_DIRPATH}" SOURCE "${_filename}")
@@ -909,7 +907,7 @@ function(__arduino_toolchain_finalize DIRECTORY)
 
             __arduino_preprocess_sketch( # <----------------------------------------------------------- build the sketch
                 "${_target}" "${_sketch_dirpath}"
-                "${_source_dirpath}" ${_source_list})
+                "${_source_dirpath}" "${_source_list}")
 
             target_link_libraries("${_target}" PUBLIC Arduino::Core)
 
