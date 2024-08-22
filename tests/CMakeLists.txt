@@ -1,6 +1,7 @@
 include(platforms.cmake)
 
 cmake_host_system_information(RESULT _logical_cores QUERY NUMBER_OF_LOGICAL_CORES)
+message(STATUS "${_logical_cores} logical CPU cores available for testing")
 set(CTEST_RESOURCE_SPEC_FILE "${CMAKE_BINARY_DIR}/CTestResources.json")
 configure_file(CTestResources.json.in "${CTEST_RESOURCE_SPEC_FILE}")
 
