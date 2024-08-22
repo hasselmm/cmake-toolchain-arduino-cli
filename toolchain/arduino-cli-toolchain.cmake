@@ -646,7 +646,7 @@ function(__arduino_collect_source_files OUTPUT_VARIABLE DIRECTORY) # [DIRECTORY.
         list(APPEND _glob_pattern_list
             "${_dirpath}/*.[cC]"
             "${_dirpath}/*.[cC][cC]"
-            "${_dirpath}/*.[cC][pP][pP]"
+            "${_dirpath}/*.[cCiItT][pP][pP]"
             "${_dirpath}/*.[cC][xX][xX]"
             "${_dirpath}/*.[hH]"
             "${_dirpath}/*.[hH][hH]"
@@ -662,7 +662,7 @@ endfunction()
 # ----------------------------------------------------------------------------------------------------------------------
 # Resolves the absolute filepath where arduino-cli would store `FILENAME` after processing.
 # ----------------------------------------------------------------------------------------------------------------------
-function(__arduino_resolve_preprocessed_filepath SOURCE_DIRPATH FILENAME SKETCH_DIRPATH OUTPUT_VARIABLE)
+function(__arduino_resolve_preprocessed_filepath SOURCE_DIRPATH FILENAME OUTPUT_DIRPATH OUTPUT_VARIABLE)
     cmake_path(
         ABSOLUTE_PATH FILENAME
         BASE_DIRECTORY "${SOURCE_DIRPATH}"
@@ -677,7 +677,11 @@ function(__arduino_resolve_preprocessed_filepath SOURCE_DIRPATH FILENAME SKETCH_
             BASE_DIRECTORY "${SOURCE_DIRPATH}"
             OUTPUT_VARIABLE _relative_filepath)
 
-        set("${OUTPUT_VARIABLE}" "${SKETCH_DIRPATH}/${_relative_filepath}" PARENT_SCOPE)
+        if (_relative_filepath MATCHES "${__ARDUINO_SKETCH_SUFFIX}")
+            string(APPEND _relative_filepath ".cpp")
+        endif()
+
+        set("${OUTPUT_VARIABLE}" "${OUTPUT_DIRPATH}/${_relative_filepath}" PARENT_SCOPE)
     else()
         unset("${OUTPUT_VARIABLE}" PARENT_SCOPE)
     endif()
@@ -803,7 +807,7 @@ function(__arduino_add_upload_target TARGET UPLOAD_TARGET FIRMWARE_FILENAME UPLO
 endfunction()
 
 # ----------------------------------------------------------------------------------------------------------------------
-# Proprocesses `SOURCE_FILENAME..` in `MODE`, similar like arduino-cli would do.
+# Preprocesses `SOURCE_FILENAME..` in `MODE`, similar like arduino-cli would do.
 # ----------------------------------------------------------------------------------------------------------------------
 function(__arduino_preprocess OUTPUT_VARIABLE OUTPUT_DIRPATH SOURCE_DIRPATH MODE SOURCE_FILENAME) # [OTHER_SKETCHES...]
     set(OTHER_SKETCHES ${ARGN})
@@ -817,10 +821,6 @@ function(__arduino_preprocess OUTPUT_VARIABLE OUTPUT_DIRPATH SOURCE_DIRPATH MODE
     __arduino_resolve_preprocessed_filepath(
         "${SOURCE_DIRPATH}" "${_source_filepath}"
         "${OUTPUT_DIRPATH}" _output_filepath)
-
-    if (MODE STREQUAL "SKETCH")
-        string(APPEND _output_filepath ".cpp")
-    endif()
 
     string(MD5 _filepath_hash "${_output_filepath}")
     set(_config_filepath "${CMAKE_BINARY_DIR}/ArduinoFiles/${_target}/preprocess-config-${_filepath_hash}.cmake")
@@ -839,10 +839,8 @@ endfunction()
 # ----------------------------------------------------------------------------------------------------------------------
 # Preprocesses the source files of `TARGET`, similar like arduino-cli would do.
 # ----------------------------------------------------------------------------------------------------------------------
-function(__arduino_preprocess_sketch TARGET OUTPUT_DIRPATH SOURCE_DIRPATH SOURCE_FILENAME) # [SOURCE_FILENAME...]
-    set(_source_list "${SOURCE_FILENAME}" ${ARGN})
-
-    set(_sketch_list ${_source_list}) # <-------------------------------------------- collect sketches from _source_list
+function(__arduino_preprocess_sketch TARGET OUTPUT_DIRPATH SOURCE_DIRPATH SOURCES)
+    set(_sketch_list ${SOURCES}) # <------------------------------------------------------ collect sketches from SOURCES
     list(FILTER _sketch_list INCLUDE REGEX "${__ARDUINO_SKETCH_SUFFIX}")
     list(PREPEND _sketch_list "${TARGET}.ino")
     list(REMOVE_DUPLICATES _sketch_list)
@@ -853,9 +851,9 @@ function(__arduino_preprocess_sketch TARGET OUTPUT_DIRPATH SOURCE_DIRPATH SOURCE
 
     target_sources("${TARGET}" PUBLIC "${_preprocessed_filepath}")
 
-    list(REMOVE_ITEM _source_list ${_sketch_list}) # <--------------------------------- preprocess regular/other sources
+    list(REMOVE_ITEM SOURCES ${_sketch_list}) # <-------------------------------------- preprocess regular/other sources
 
-    foreach(_filename IN LISTS _source_list)
+    foreach(_filename IN LISTS SOURCES)
         __arduino_preprocess(
             _preprocessed_filepath "${OUTPUT_DIRPATH}"
             "${SOURCE_DIRPATH}" SOURCE "${_filename}")
@@ -909,7 +907,7 @@ function(__arduino_toolchain_finalize DIRECTORY)
 
             __arduino_preprocess_sketch( # <----------------------------------------------------------- build the sketch
                 "${_target}" "${_sketch_dirpath}"
-                "${_source_dirpath}" ${_source_list})
+                "${_source_dirpath}" "${_source_list}")
 
             target_link_libraries("${_target}" PUBLIC Arduino::Core)
 
