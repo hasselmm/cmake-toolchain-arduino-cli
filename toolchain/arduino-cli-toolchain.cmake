@@ -696,50 +696,80 @@ endfunction()
 # if not hundreds of out-of-tree sources the library is built separately and later gets pulled as IMPORT library.
 # ----------------------------------------------------------------------------------------------------------------------
 function(__arduino_add_import_library NAME SOURCE_DIR) # [SOURCE_DIR...]
+    string(TOUPPER "ARDUINO_${NAME}" _prefix)
+
     set(_libname "Arduino${NAME}")
     set(_target  "Arduino::${NAME}")
 
-    set(_library_binary_dir "${CMAKE_BINARY_DIR}/Arduino/${NAME}")
-    set(_library_source_dir "${CMAKE_BINARY_DIR}/ArduinoFiles/${NAME}")
-    set(_library_template "${ARDUINO_TOOLCHAIN_DIR}/Templates/ArduinoLibraryCMakeLists.txt.in")
-    set(_library_filepath "${_library_binary_dir}/lib${_libname}.a")
+    if (${_prefix}_FILEPATH)
+        message(STATUS "Using ${_target} from ${${_prefix}_FILEPATH}")
 
-    set(_library_directories "${SOURCE_DIR}" ${ARGN})
-    list(FILTER _library_directories EXCLUDE REGEX "^ *\$")
-    list(REMOVE_DUPLICATES _library_directories)
+        set(_library_binary_dir     "${${_prefix}_BINARY_DIR}")
+        set(_library_source_dir     "${${_prefix}_BINARY_DIR}")
+        set(_library_directories    "${${_prefix}_INCLUDE_DIRS}")
+        set(_library_filepath       "${${_prefix}_FILEPATH}")
+    else()
+        message(STATUS "Building ${_target} from scratch")
 
-    __arduino_collect_source_files(_library_sources ${_library_directories}) # <----- collect the library's source files
+        set(_library_binary_dir "${CMAKE_BINARY_DIR}/Arduino/${NAME}")
+        set(_library_source_dir "${CMAKE_BINARY_DIR}/ArduinoFiles/${NAME}")
+        set(_library_filepath   "${_library_binary_dir}/lib${_libname}.a")
 
-    list(LENGTH _library_sources _source_file_count)
-    message(STATUS "  ${_source_file_count} source files found for ${_target}")
+        set(_library_directories "${SOURCE_DIR}" ${ARGN}) # <---------------- normalize the library's source directories
+        list(FILTER _library_directories EXCLUDE REGEX "^ *\$")
+        list(REMOVE_DUPLICATES _library_directories)
 
-    list(JOIN _library_sources     "\"\n    \"" _quoted_library_sources) # <--------- prepare CMake to build out of tree
-    list(JOIN _library_directories "\"\n    \"" _quoted_library_directories)
-    configure_file("${_library_template}" "${_library_source_dir}/CMakeLists.txt")
+        __arduino_collect_source_files(_library_sources ${_library_directories}) # <--------- find the library's sources
 
-    add_custom_command(
-        OUTPUT "${_library_binary_dir}/CMakeCache.txt"
-        DEPENDS "${_library_template}" "${CMAKE_CURRENT_LIST_FILE}"
-        COMMENT "Configuring ${_target} library"
-        WORKING_DIRECTORY "${_library_binary_dir}"
+        list(LENGTH _library_sources _source_file_count)
+        message(STATUS "  ${_source_file_count} source files found for ${_target}")
 
-        COMMAND "${CMAKE_COMMAND}"
+        list(JOIN _library_sources     "\"\n    \"" _quoted_library_sources) # <----- prepare CMake to build out of tree
+        list(JOIN _library_directories "\"\n    \"" _quoted_library_directories)
+
+        set(_library_template "${ARDUINO_TOOLCHAIN_DIR}/Templates/ArduinoLibraryCMakeLists.txt.in")
+        configure_file("${_library_template}" "${_library_source_dir}/CMakeLists.txt")
+
+        add_custom_command(
+            OUTPUT "${_library_binary_dir}/CMakeCache.txt"
+            DEPENDS "${_library_template}" "${CMAKE_CURRENT_LIST_FILE}"
+            COMMENT "Configuring ${_target} library"
+            WORKING_DIRECTORY "${_library_binary_dir}"
+
+            COMMAND "${CMAKE_COMMAND}"
             --toolchain "${CMAKE_CURRENT_FUNCTION_LIST_FILE}"
             -G "${CMAKE_GENERATOR}" -S "${_library_source_dir}"
+            -D "__ARDUINO_IMPORTED_TARGET_CACHE=${__ARDUINO_IMPORTED_TARGET_CACHE}"
             -D "ARDUINO_BOARD:STRING=${ARDUINO_BOARD}")
 
-    add_custom_command(
-        OUTPUT "${_library_filepath}"
-        DEPENDS ${_library_sources} "${_library_binary_dir}/CMakeCache.txt"
-        COMMENT "Building ${_target} library"
-        WORKING_DIRECTORY "${_library_binary_dir}"
+        add_custom_command(
+            OUTPUT "${_library_filepath}"
+            DEPENDS ${_library_sources} "${_library_binary_dir}/CMakeCache.txt"
+            COMMENT "Building ${_target} library"
+            WORKING_DIRECTORY "${_library_binary_dir}"
 
-        COMMAND "${CMAKE_COMMAND}" --build "${_library_binary_dir}")
+            COMMAND "${CMAKE_COMMAND}" --build "${_library_binary_dir}")
 
-    add_custom_target("${_libname}_compile" DEPENDS "${_library_filepath}")
+        add_custom_target("${_libname}_compile" DEPENDS "${_library_filepath}")
+
+        set(${_prefix}_BINARY_DIR   "${_library_binary_dir}"    PARENT_SCOPE) # <------------------- set cache variables
+        set(${_prefix}_SOURCE_DIR   "${_library_source_dir}"    PARENT_SCOPE)
+        set(${_prefix}_FILEPATH     "${_library_filepath}"      PARENT_SCOPE)
+        set(${_prefix}_INCLUDE_DIRS "${_library_directories}"   PARENT_SCOPE)
+
+        file(
+            APPEND "${__ARDUINO_IMPORTED_TARGET_CACHE}"
+            "set(${_prefix}_BINARY_DIR   \"${_library_binary_dir}\")\n"
+            "set(${_prefix}_SOURCE_DIR   \"${_library_source_dir}\")\n"
+            "set(${_prefix}_FILEPATH     \"${_library_filepath}\")\n"
+            "set(${_prefix}_INCLUDE_DIRS \"${_library_directories}\")\n")
+    endif()
 
     add_library("${_target}" STATIC IMPORTED) # <-------------------- define import library for the built static library
-    add_dependencies("${_target}" "${_libname}_compile")
+
+    if (TARGET "${_libname}_compile")
+        add_dependencies("${_target}" "${_libname}_compile")
+    endif()
 
     if (NOT NAME STREQUAL "Core")
         target_link_libraries("${_target}" INTERFACE Arduino::Core)
@@ -759,11 +789,22 @@ endfunction()
 # Creates an import library for Arduino's core library.
 # ----------------------------------------------------------------------------------------------------------------------
 function(__arduino_add_arduino_core_library)
-    set(_library_directories
-        "${ARDUINO_PROPERTIES_EXPANDED_BUILD_CORE_PATH}"
-        "${ARDUINO_PROPERTIES_EXPANDED_BUILD_VARIANT_PATH}")
+    cmake_path(
+        CONVERT "${ARDUINO_PROPERTIES_EXPANDED_BUILD_CORE_PATH}"
+        TO_CMAKE_PATH_LIST _core_dirpath
+        NORMALIZE)
 
+    cmake_path(
+        CONVERT "${ARDUINO_PROPERTIES_EXPANDED_BUILD_VARIANT_PATH}"
+        TO_CMAKE_PATH_LIST _variant_dirpath
+        NORMALIZE)
+
+    set(_library_directories "${_core_dirpath}" "${_variant_dirpath}")
     __arduino_add_import_library(Core ${_library_directories})
+
+    foreach(_suffix IN ITEMS BINARY_DIR SOURCE_DIR FILEPATH)
+        set("ARDUINO_CORE_${_suffix}" "${ARDUINO_CORE_${_suffix}}" PARENT_SCOPE)
+    endforeach()
 endfunction()
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -1036,7 +1077,8 @@ list( # <-----------------------------------------------------------------------
     ARDUINO_BOARD                                                                                  # make it just work
     __ARDUINO_PROPERTIES_EXPANDED_CACHE                                                            # make it MUCH faster
     __ARDUINO_PROPERTIES_UNEXPANDED_CACHE
-    __ARDUINO_INSTALLED_LIBRARIES_CACHE)
+    __ARDUINO_INSTALLED_LIBRARIES_CACHE
+    __ARDUINO_IMPORTED_TARGET_CACHE)
 
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)                     # try_compile() doesn't provide setup() and loop()
 
@@ -1044,6 +1086,14 @@ set(CMAKE_USER_MAKE_RULES_OVERRIDE # <------------------ align object and librar
     "${ARDUINO_TOOLCHAIN_DIR}/Arduino/RulesOverride.cmake")
 
 if (CMAKE_PARENT_LIST_FILE MATCHES "CMakeSystem\\.cmake$") # <----------------- define additonal API, additional targets
+    if (__ARDUINO_IMPORTED_TARGET_CACHE)
+        message(STATUS "Using library cache from ${__ARDUINO_IMPORTED_TARGET_CACHE}")
+        include("${__ARDUINO_IMPORTED_TARGET_CACHE}")
+    else()
+        set(__ARDUINO_IMPORTED_TARGET_CACHE "${CMAKE_BINARY_DIR}/ArduinoFiles/ArduinoLibraries.cmake")
+        file(WRITE "${__ARDUINO_IMPORTED_TARGET_CACHE}" "# Generated from toolchain\n")
+    endif()
+
     if (NOT CMAKE_PROJECT_NAME STREQUAL ArduinoCore) # FIXME Rather check for __ARDUINO_CORE_FILEPATH
         __arduino_add_arduino_core_library()
     endif()
