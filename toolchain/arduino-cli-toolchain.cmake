@@ -202,7 +202,7 @@ function(__arduino_property_to_variable PROPERTY_NAME OUTPUT_VARIABLE)
     set(_host_variable "${_name}_${_host_suffix}")
 
     # Must check for empty _host_suffix because it will be empty initially
-    # while filling the alias variables in __arduino_find_board_details().
+    # while filling the alias variables in __arduino_find_properties().
     if (_host_suffix AND DEFINED "${_host_variable}")
         set("${OUTPUT_VARIABLE}" "${_host_variable}" PARENT_SCOPE)
     else()
@@ -499,7 +499,7 @@ endfunction()
 #
 # See `arduino_get_property()` and `__arduino_property_to_variable()`.
 # ----------------------------------------------------------------------------------------------------------------------
-function(__arduino_find_board_details MODE)
+function(__arduino_find_properties MODE)
     if (MODE STREQUAL UNEXPANDED) # <---------------------------------------------------------- parse function arguments
         set(_property_mode UNEXPANDED)
     elseif (MODE STREQUAL EXPANDED)
@@ -1015,8 +1015,8 @@ find_program( # <---------------------------------------------------------------
     [HKLM/SOFTWARE/Arduino CLI;InstallDir]
     "$ENV{PROGRAMFILES}/Arduino CLI")
 
-__arduino_find_board_details(EXPANDED) # <----------------------------------- collect properties and installed libraries
-__arduino_find_board_details(UNEXPANDED)
+__arduino_find_properties(EXPANDED) # <-------------------------------------- collect properties and installed libraries
+__arduino_find_properties(UNEXPANDED)
 __arduino_find_libraries()
 
 find_program( # <----------------------------------------------------------------------- find ctags from Arduino runtime
