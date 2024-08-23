@@ -701,19 +701,19 @@ function(__arduino_add_import_library NAME SOURCE_DIR) # [SOURCE_DIR...]
     set(_libname "Arduino${NAME}")
     set(_target  "Arduino::${NAME}")
 
-    if (${_prefix}_FILEPATH)
+    if (${_prefix}_FILEPATH) # <--------------------------------- check if there already is a version that can be reused
         message(STATUS "Using ${_target} from ${${_prefix}_FILEPATH}")
 
         set(_library_binary_dir     "${${_prefix}_BINARY_DIR}")
         set(_library_source_dir     "${${_prefix}_BINARY_DIR}")
         set(_library_directories    "${${_prefix}_INCLUDE_DIRS}")
         set(_library_filepath       "${${_prefix}_FILEPATH}")
-    else()
-        message(STATUS "Building ${_target} from scratch")
-
+    else() # <--------------------------------------------------------------------------------------- build from scratch
         set(_library_binary_dir "${CMAKE_BINARY_DIR}/Arduino/${NAME}")
         set(_library_source_dir "${CMAKE_BINARY_DIR}/ArduinoFiles/${NAME}")
         set(_library_filepath   "${_library_binary_dir}/lib${_libname}.a")
+
+        message(STATUS "Building ${_target} at ${_library_binary_dir}")
 
         set(_library_directories "${SOURCE_DIR}" ${ARGN}) # <---------------- normalize the library's source directories
         list(FILTER _library_directories EXCLUDE REGEX "^ *\$")
