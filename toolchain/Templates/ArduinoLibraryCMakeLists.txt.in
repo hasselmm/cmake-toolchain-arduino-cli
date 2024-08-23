@@ -1,5 +1,7 @@
-cmake_minimum_required(VERSION ${CMAKE_VERSION})
-project(${_libname} VERSION 0.1 LANGUAGES ASM C CXX)
+cmake_minimum_required(VERSION ${CMAKE_MINIMUM_REQUIRED_VERSION})
+project(${_libname} LANGUAGES ASM C CXX)
+
+message(STATUS "Configuring ${_libname} for ${ARDUINO_BOARD}")
 
 add_library(
     ${_libname} STATIC
