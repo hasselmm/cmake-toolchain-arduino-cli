@@ -7,8 +7,10 @@ add_custom_target(
     toolchain/Arduino/RulesOverride.cmake
     toolchain/Arduino/ScriptMode.cmake
     toolchain/Platform/Arduino.cmake
+    toolchain/Scripts/CollectLibraries.cmake
     toolchain/Scripts/Preprocess.cmake
     toolchain/Templates/ArduinoLibraryCMakeLists.txt.in
+    toolchain/Templates/CollectLibrariesConfig.cmake.in
     toolchain/Templates/PreprocessConfig.cmake.in
     toolchain/arduino-cli-toolchain.cmake)
 

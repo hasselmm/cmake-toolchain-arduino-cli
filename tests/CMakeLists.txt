@@ -1,6 +1,7 @@
 include(platforms.cmake)
 
 cmake_host_system_information(RESULT _logical_cores QUERY NUMBER_OF_LOGICAL_CORES)
+message(STATUS "${_logical_cores} logical CPU cores available for testing")
 set(CTEST_RESOURCE_SPEC_FILE "${CMAKE_BINARY_DIR}/CTestResources.json")
 configure_file(CTestResources.json.in "${CTEST_RESOURCE_SPEC_FILE}")
 
@@ -75,4 +76,21 @@ function(arduino_cli_toolchain_add_test NAME)
     endforeach()
 endfunction()
 
+# ======================================================================================================================
+# the actual tests
+# ======================================================================================================================
+
+# A very minimal sketch without any additional dependencies
 arduino_cli_toolchain_add_test(CMakeBlink)
+
+# Some sketches from Arduino examples that use one single core library
+arduino_cli_toolchain_add_test(DigitalPotControl SKIP attiny43)             # some pins are mising for attiny43
+arduino_cli_toolchain_add_test(TwoPortReceive SKIP nano_33_iot nodemcu-32s) # no SoftwareSerial for samd and esp32
+
+# Some sketches from Arduino examples that use core libraries which depend on other core libraries
+arduino_cli_toolchain_add_test(EchoString)
+arduino_cli_toolchain_add_test(LinkStatus)
+arduino_cli_toolchain_add_test(TFTBitmapLogo)
+
+# TBD: A sketch which uses multiple independent libraries
+# TDB: A sketch with complex directory structure: multiple .ino files, multiple .cpp files, src folder

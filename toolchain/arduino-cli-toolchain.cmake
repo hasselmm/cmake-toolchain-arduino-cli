@@ -493,6 +493,71 @@ endfunction()
 # Internal utility functions that find Arduino components and configurations.
 # ======================================================================================================================
 
+set(__ARDUINO_CLI_CONFIG_DESCRIPTION            "Arduino CLI configuration")
+set(__ARDUINO_CLI_CONFIG_FILENAME               "config.json")
+set(__ARDUINO_CLI_CONFIG_COMMAND                 config dump --format=json)
+
+set(__ARDUINO_PROPERTIES_EXPANDED_DESCRIPTION   "expanded build properties")
+set(__ARDUINO_PROPERTIES_EXPANDED_FILENAME      "properties-expanded.txt")
+set(__ARDUINO_PROPERTIES_EXPANDED_COMMAND        board details "--fqbn=${ARDUINO_BOARD}" --format=text --show-properties=expanded)
+
+set(__ARDUINO_PROPERTIES_UNEXPANDED_DESCRIPTION "unexpanded build properties")
+set(__ARDUINO_PROPERTIES_UNEXPANDED_FILENAME    "properties-unexpanded.txt")
+set(__ARDUINO_PROPERTIES_UNEXPANDED_COMMAND      board details "--fqbn=${ARDUINO_BOARD}" --format=text --show-properties=unexpanded)
+
+set(__ARDUINO_INSTALLED_LIBRARIES_DESCRIPTION   "installed Arduino libraries")
+set(__ARDUINO_INSTALLED_LIBRARIES_FILENAME      "libraries.json")
+set(__ARDUINO_INSTALLED_LIBRARIES_COMMAND       lib list "--fqbn=${ARDUINO_BOARD}" --format=json)
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Reads information from `arduino-cli` into `__ARDUINO_${TOPIC}` and tries to cache it.
+# ----------------------------------------------------------------------------------------------------------------------
+function(__arduino_read_cached_setting TOPIC)
+    if (NOT DEFINED __ARDUINO_${TOPIC}_DESCRIPTION
+            OR NOT DEFINED __ARDUINO_${TOPIC}_FILENAME
+            OR NOT DEFINED __ARDUINO_${TOPIC}_COMMAND)
+        message(FATAL_ERROR "Invalid topic: ${TOPIC}")
+        return()
+    endif()
+
+    set(_use_cache YES)
+
+    if (__ARDUINO_${TOPIC}_CACHE)
+        set(_cache_filepath "${__ARDUINO_${TOPIC}_CACHE}")
+    else()
+        set(_cache_filepath "${CMAKE_BINARY_DIR}/ArduinoFiles/${__ARDUINO_${TOPIC}_FILENAME}")
+
+        if (NOT EXISTS "${_cache_filepath}"
+                OR NOT EXISTS "${CMAKE_BINARY_DIR}/CMakeCache.txt"
+                OR NOT "${_cache_filepath}" IS_NEWER_THAN "${CMAKE_BINARY_DIR}/CMakeCache.txt")
+            set(_use_cache NO)
+        endif()
+    endif()
+
+    if (_use_cache) # <------------------------------------------------------------------ try to read cached information
+        message(STATUS "Reading ${__ARDUINO_${TOPIC}_DESCRIPTION} from ${_cache_filepath}")
+        set("__ARDUINO_${TOPIC}_ORIGIN" cache PARENT_SCOPE)
+
+        file(READ "${_cache_filepath}" _content)
+    else() # <------------------------------------------------------------------------------------- run arduino-cli tool
+        message(STATUS "Running android-cli to read ${__ARDUINO_${TOPIC}_DESCRIPTION}")
+        set("__ARDUINO_${TOPIC}_ORIGIN" cli PARENT_SCOPE)
+
+        execute_process(
+            COMMAND "${ARDUINO_CLI_EXECUTABLE}" ${__ARDUINO_${TOPIC}_COMMAND}
+
+            ENCODING UTF-8
+            COMMAND_ERROR_IS_FATAL ANY
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            OUTPUT_VARIABLE _content)
+
+        file(WRITE "${_cache_filepath}" "${_content}")
+    endif()
+
+    set("__ARDUINO_${TOPIC}"       "${_content}"        PARENT_SCOPE)
+    set("__ARDUINO_${TOPIC}_CACHE" "${_cache_filepath}" PARENT_SCOPE)
+endfunction()
+
 # ----------------------------------------------------------------------------------------------------------------------
 # Collects build properties for the current board from arduino-cli,
 # and stores them in prefixed CMake variables.
@@ -509,57 +574,22 @@ function(__arduino_find_properties MODE)
         return()
     endif()
 
-    string(TOLOWER "${MODE}" _mode)
+    __arduino_read_cached_setting("PROPERTIES_${MODE}")
+    set(_properties "${__ARDUINO_PROPERTIES_${MODE}}")
 
-    set(_use_property_cache YES) # <----------------------------------------- figure out if a cached version can be used
-    set(_cachefile_variable "__ARDUINO_PROPERTIES_${MODE}_CACHE")
+    string(REPLACE ";" "\\;" _properties "${_properties}") # <------------------ split into lines; preserving semicolons
+    string(REGEX REPLACE "[ \t\r]*\n" ";" _property_list "${_properties}")
 
-    if (DEFINED "${_cachefile_variable}")
-        set(_arduino_cache_filepath "${${_cachefile_variable}}")
-        set(_cmake_dump_filepath) # do not dump already cached variables
-    else()
-        set(_arduino_cache_filepath "${CMAKE_BINARY_DIR}/ArduinoFiles/properties-${_mode}.txt")
-        set(_cmake_dump_filepath    "${CMAKE_BINARY_DIR}/ArduinoFiles/properties-${_mode}.cmake")
-
-        if (NOT EXISTS "${_arduino_cache_filepath}"
-                OR NOT EXISTS "${CMAKE_BINARY_DIR}/CMakeCache.txt"
-                OR NOT "${_arduino_cache_filepath}" IS_NEWER_THAN "${CMAKE_BINARY_DIR}/CMakeCache.txt")
-            set(_use_property_cache NO)
-        endif()
-    endif()
-
-    set("${_cachefile_variable}" "${_arduino_cache_filepath}" PARENT_SCOPE)
-
-    if (_use_property_cache) # <---------------------------------------------------------- try to read cached properties
-        message(STATUS "Reading ${_mode} build properties from ${_arduino_cache_filepath}")
-        file(READ "${_arduino_cache_filepath}" _properties)
-    else() # <------------------------------------------------------------------------------------- run arduino-cli tool
-        message(STATUS "Running android-cli to read ${_mode} build properties...")
-
-        execute_process(
-            COMMAND "${ARDUINO_CLI_EXECUTABLE}"
-            board details "--fqbn=${ARDUINO_BOARD}"
-            --show-properties=${_mode} --format=text
-
-            ENCODING UTF-8
-            COMMAND_ERROR_IS_FATAL ANY
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-            OUTPUT_VARIABLE _properties)
-
-        file(WRITE "${_arduino_cache_filepath}" "${_properties}")
-    endif()
-
-    if (NOT _property_list)
-        string(REPLACE ";" "\\;" _properties "${_properties}") # <------------------ split into lines; preserving semicolons
-        string(REGEX REPLACE "[ \t\r]*\n" ";" _property_list "${_properties}")
-    endif()
-
-    if (NOT _use_property_cache)
+    if (__ARDUINO_PROPERTIES_${MODE}_ORIGIN STREQUAL "cli")
         list(LENGTH _property_list _count)
         message(STATUS "  ${_count} properties found")
+
+        string(REPLACE ".txt" ".cmake" _cmake_cache_filepath "${__ARDUINO_PROPERTIES_${MODE}_CACHE}")
+    else()
+        unset(_cmake_cache_filepath) # do not dump already cached variables
     endif()
 
-    set(_variable_dump "")
+    unset(_cmake_variable_cache)
 
     foreach (_property IN LISTS _property_list) # <--------------------------------- set CMake variables from properties
         if (_property MATCHES "([^=]+)=(.*)")
@@ -573,63 +603,128 @@ function(__arduino_find_properties MODE)
             endif()
 
             set("${_variable}" "${_property_value}" PARENT_SCOPE)
-            string(APPEND _property_dump "${_variable}=${_property_value}\n")
+
+            string(REPLACE "\\" "\\\\" _escaped_value "${_property_value}")
+            string(REPLACE "\"" "\\\"" _escaped_value "${_escaped_value}")
+            string(APPEND _cmake_variable_cache "set(${_variable} \"${_escaped_value}\")\n")
         elseif (_property)
             message(FATAL_ERROR "Unexpected output from arduino-cli tool: ${_property}")
             return()
         endif()
     endforeach()
 
-    if ("${_cmake_dump_filepath}") # <---------------------------------------------- only dump after running arduino-cli
-        file(WRITE "${_cmake_dump_filepath}" "${_property_dump}")
+    if (_cmake_cache_filepath) # <------------------------------------------------ --only dump after running arduino-cli
+        file(WRITE "${_cmake_cache_filepath}" "${_cmake_variable_cache}")
     endif()
+
+    set("__ARDUINO_PROPERTIES_${MODE}"       "${__ARDUINO_PROPERTIES_${MODE}}"       PARENT_SCOPE)
+    set("__ARDUINO_PROPERTIES_${MODE}_CACHE" "${__ARDUINO_PROPERTIES_${MODE}_CACHE}" PARENT_SCOPE)
 endfunction()
 
 # ----------------------------------------------------------------------------------------------------------------------
-# Collects available libraries for the current board from arduino-cli.
+# Reads available libraries for the current board from `arduino-cli`
+# and stores the JSON in `__ARDUINO_INSTALLED_LIBRARIES`.
 # ----------------------------------------------------------------------------------------------------------------------
 function(__arduino_find_libraries)
-    set(_use_library_cache YES) # <------------------------------------------ figure out if a cached version can be used
+    __arduino_read_cached_setting(INSTALLED_LIBRARIES)
 
-    if (__ARDUINO_INSTALLED_LIBRARIES_CACHE)
-        set(_arduino_cache_filepath "${__ARDUINO_INSTALLED_LIBRARIES_CACHE}")
-    else()
-        set(_arduino_cache_filepath "${CMAKE_BINARY_DIR}/ArduinoFiles/libraries.json")
+    string( # <--------------------------------------------------------------------------- parse the library information
+        JSON _installed_libraries
+        GET "${__ARDUINO_INSTALLED_LIBRARIES}" installed_libraries)
 
-        if (NOT EXISTS "${_arduino_cache_filepath}"
-                OR NOT EXISTS "${CMAKE_BINARY_DIR}/CMakeCache.txt"
-                OR NOT "${_arduino_cache_filepath}" IS_NEWER_THAN "${CMAKE_BINARY_DIR}/CMakeCache.txt")
-            set(_use_library_cache NO)
-        endif()
-    endif()
-
-    if (_use_library_cache) # <------------------------------------------------------------ try to read cached libraries
-        message(STATUS "Reading installed Arduino libraries from ${_arduino_cache_filepath}")
-        file(READ "${_arduino_cache_filepath}" _json)
-    else() # <------------------------------------------------------------------------------------- run arduino-cli tool
-        message(STATUS "Running android-cli to read installed Arduino libraries...")
-
-        execute_process(
-            COMMAND "${ARDUINO_CLI_EXECUTABLE}"
-            lib list "--fqbn=${ARDUINO_BOARD}" --format=json
-
-            ENCODING UTF-8
-            COMMAND_ERROR_IS_FATAL ANY
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-            OUTPUT_VARIABLE _json)
-
-        file(WRITE "${_arduino_cache_filepath}" "${_json}")
-    endif()
-
-    string(JSON _installed_libraries GET "${_json}" installed_libraries) # <-------------- parse the library information
-
-    if (NOT _use_library_cache)
+    if (__ARDUINO_INSTALLED_LIBRARIES_ORIGIN STREQUAL "cli")
         string(JSON _count LENGTH "${_installed_libraries}")
         message(STATUS "  ${_count} libraries found")
     endif()
 
-    set(__ARDUINO_INSTALLED_LIBRARIES       "${_installed_libraries}"    PARENT_SCOPE)
-    set(__ARDUINO_INSTALLED_LIBRARIES_CACHE "${_arduino_cache_filepath}" PARENT_SCOPE)
+    set(__ARDUINO_INSTALLED_LIBRARIES       "${_installed_libraries}"                PARENT_SCOPE)
+    set(__ARDUINO_INSTALLED_LIBRARIES_CACHE "${__ARDUINO_INSTALLED_LIBRARIES_CACHE}" PARENT_SCOPE)
+endfunction()
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Reads configuration of `arduino-cli` and stores the JSON in `__ARDUINO_CLI_CONFIG`.
+# ----------------------------------------------------------------------------------------------------------------------
+function(__arduino_find_config)
+    __arduino_read_cached_setting(CLI_CONFIG)
+
+    set(__ARDUINO_CLI_CONFIG        "${__ARDUINO_CLI_CONFIG}"       PARENT_SCOPE)
+    set(__ARDUINO_CLI_CONFIG_CACHE  "${__ARDUINO_CLI_CONFIG_CACHE}" PARENT_SCOPE)
+endfunction()
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Finds and verifies the location of user sketches.
+# ----------------------------------------------------------------------------------------------------------------------
+function(__arduino_find_user_sketches_dirpath)
+    string(
+        JSON _user_sketches_dirpath ERROR_VARIABLE _error
+        GET "${__ARDUINO_CLI_CONFIG}" config directories user)
+
+    if (NOT _error AND _user_sketches_dirpath)
+        cmake_path(ABSOLUTE_PATH _user_sketches_dirpath NORMALIZE)
+
+        if (NOT IS_DIRECTORY "${_user_sketches_dirpath}")
+            set(_error_message
+                "Your arduino-cli is configured to use \"${_user_sketches_dirpath}\" "
+                "for user sketches and libraries, but this directory does not exist.")
+        endif()
+    else()
+        set(_error_message "Your arduino-cli doesn't know where to find user sketches and libraries.")
+    endif()
+
+    if (_error_message)
+        list(APPEND _error_message
+            "\nYOUR BUILDS MIGHT FAIL!\nPlease consider running `arduino-cli config set "
+            "directories.user PATH-TO-YOUR-SKETCHES` to address this issue.")
+
+        if (DEFINED ENV{USERPROFILE})
+            list(APPEND _error_message "\nA typical path would be: \"$ENV{USERPROFILE}\\Arduino\"")
+        elseif (DEFINED ENV{HOME})
+            list(APPEND _error_message "\nA typical path would be: \"$ENV{HOME}/Arduino\"")
+        endif()
+
+        message(WARNING ${_error_message})
+        set(_user_sketches_dirpath NOTFOUND)
+    endif()
+
+    set(__ARDUINO_USER_SKETCHES_DIRPATH "${_user_sketches_dirpath}"     PARENT_SCOPE)
+endfunction()
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Finds and verifies the location of IDE libraries.
+# ----------------------------------------------------------------------------------------------------------------------
+function(__arduino_find_ide_libraries_dirpath)
+    string(
+        JSON _ide_libraries_dirpath ERROR_VARIABLE _error
+        GET "${__ARDUINO_CLI_CONFIG}" config directories builtin libraries)
+
+    if (NOT _error AND _ide_libraries_dirpath)
+        cmake_path(ABSOLUTE_PATH _ide_libraries_dirpath NORMALIZE)
+
+        if (NOT IS_DIRECTORY "${_ide_libraries_dirpath}")
+            set(_error_message
+                "Your arduino-cli is configured to use \"${_ide_libraries_dirpath}\" "
+                "for IDE provided libraries, but this directory does not exist.")
+        endif()
+    else()
+        set(_error_message "Your arduino-cli doesn't know where to find IDE provided libraries.")
+    endif()
+
+    if (_error_message)
+        list(APPEND _error_message
+            "\nYOUR BUILDS MIGHT FAIL!\nPlease consider running `arduino-cli config set "
+            "directories.builtin.libraries PATH-TO-YOUR-IDE-LIBRARIES` to address this issue.")
+
+        if (DEFINED ENV{LOCALAPPDATA})
+            list(APPEND _error_message "\nA typical path would be: \"$ENV{LOCALAPPDATA}\\Arduino15\\libraries\"")
+        elseif (DEFINED ENV{HOME})
+            list(APPEND _error_message "\nA typical path would be: \"$ENV{HOME}/.arduino15/libraries\"")
+        endif()
+
+        message(WARNING ${_error_message})
+        set(_user_sketches_dirpath NOTFOUND)
+    endif()
+
+    set(__ARDUINO_IDE_LIBRARIES_DIRPATH "${_ide_libraries_dirpath}"     PARENT_SCOPE)
 endfunction()
 
 # ======================================================================================================================
@@ -862,7 +957,7 @@ function(__arduino_preprocess OUTPUT_VARIABLE OUTPUT_DIRPATH SOURCE_DIRPATH MODE
         "${OUTPUT_DIRPATH}" _output_filepath)
 
     string(MD5 _filepath_hash "${_output_filepath}")
-    set(_config_filepath "${CMAKE_BINARY_DIR}/ArduinoFiles/${_target}/preprocess-config-${_filepath_hash}.cmake")
+    set(_config_filepath "${CMAKE_BINARY_DIR}/ArduinoFiles/${_target}/preprocess-${_filepath_hash}.cmake")
 
     __arduino_add_code_generator(
         SCRIPT_OUTPUT   "${_output_filepath}"
@@ -899,6 +994,61 @@ function(__arduino_preprocess_sketch TARGET OUTPUT_DIRPATH SOURCE_DIRPATH SOURCE
 
         target_sources("${TARGET}" PUBLIC "${_preprocessed_filepath}")
     endforeach()
+endfunction()
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Remove obsolete files from preprocesses the sources files directory.
+# Such step is neccessary as the prebuild hooks of various cores place files in this folder to implement dynamic
+# dependency chains. Therefore this folder has to be searched for files to resolve dependencies, instead of using
+# a computed list. For this search to succeed previous build-artifacts must be removed.
+# ----------------------------------------------------------------------------------------------------------------------
+function(__arduino_remove_obsolete_sketch_files TARGET SKETCH_DIRPATH)
+    set(_source_list_cache "${CMAKE_BINARY_DIR}/ArduinoFiles/${TARGET}/sources.txt")
+
+    if (EXISTS "${_source_list_cache}") # <----------------------------------- read target SOURCE list from previous run
+        file(READ "${_source_list_cache}" _cached_source_list)
+    else()
+        unset(_cached_source_list)
+    endif()
+
+    get_property(_source_list TARGET "${TARGET}" PROPERTY SOURCES) # <---------- check if files got removed from SOURCES
+
+    list(REMOVE_DUPLICATES _source_list)
+    list(REMOVE_ITEM _cached_source_list ${_source_list})
+    file(WRITE "${_source_list_cache}" "${_source_list}")
+
+    foreach(_filename IN LISTS _cached_source_list) # <------------------- delete preprocessed files for removed SOURCES
+        __arduino_resolve_preprocessed_filepath(
+            "${_source_dirpath}" "${_filename}"
+            "${SKETCH_DIRPATH}" _sketch_filepath)
+
+        message(STATUS "Removing obsolete ${_filename}")
+        file(REMOVE "${_sketch_filepath}")
+    endforeach()
+endfunction()
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Scan the preprocessed source code of `TARGET` for #include directives to detect implicit library dependencies.
+# ----------------------------------------------------------------------------------------------------------------------
+function(__arduino_link_implicit_libraries TARGET SKETCH_DIRPATH)
+    # Can't simple use a pre-computed source file list here, but have to list files in SKETCH_DIRPATH
+    # since the pre-build hooks of some platforms place generated files in the sketch folder to enable
+    # selective linking of system libraries.
+    __arduino_remove_obsolete_sketch_files("${_target}" "${SKETCH_DIRPATH}")
+    __arduino_collect_source_files(_preprocessed_sources_list "${SKETCH_DIRPATH}")
+
+    set(_required_libraries_include "${CMAKE_BINARY_DIR}/ArduinoFiles/${_target}/libraries-include.cmake")
+    target_sources("${_target}" PRIVATE "${_required_libraries_include}")
+
+    __arduino_add_code_generator(
+        SCRIPT_OUTPUT   "${_required_libraries_include}"
+        SCRIPT_FILEPATH "${__ARDUINO_TOOLCHAIN_COLLECT_LIBRARIES}"
+        CONFIG_TEMPLATE "${ARDUINO_TOOLCHAIN_DIR}/Templates/CollectLibrariesConfig.cmake.in"
+        CONFIG_FILEPATH "${CMAKE_BINARY_DIR}/ArduinoFiles/${_target}/libraries-config.cmake"
+        COMMENT         "Collecting required libraries for ${TARGET}"
+        DEPENDS         ${_preprocessed_sources_list})
+
+    include("${_required_libraries_include}")
 endfunction()
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -948,7 +1098,8 @@ function(__arduino_toolchain_finalize DIRECTORY)
                 "${_target}" "${_sketch_dirpath}"
                 "${_source_dirpath}" "${_source_list}")
 
-            target_link_libraries("${_target}" PUBLIC Arduino::Core)
+            target_link_libraries("${_target}" PUBLIC Arduino::Core) # <------------- link implicitly required libraries
+            __arduino_link_implicit_libraries("${_target}" "${_sketch_dirpath}")
 
             set_property(TARGET "${_target}" PROPERTY SUFFIX ".elf") # <----------------------- build the final firmware
             __arduino_add_firmware_target("${_target}" _firmware_filename)
@@ -1005,9 +1156,11 @@ cmake_path(GET CMAKE_CURRENT_LIST_FILE PARENT_PATH ARDUINO_TOOLCHAIN_DIR) # <---
 list(APPEND CMAKE_MODULE_PATH ${ARDUINO_TOOLCHAIN_DIR})
 
 set(__ARDUINO_SKETCH_SUFFIX "\\.(ino|pde)\$") # <-------------------------------------------- generally useful constants
-set(__ARDUINO_TOOLCHAIN_PREPROCESS "${ARDUINO_TOOLCHAIN_DIR}/Scripts/Preprocess.cmake")
+set(__ARDUINO_TOOLCHAIN_COLLECT_LIBRARIES "${ARDUINO_TOOLCHAIN_DIR}/Scripts/CollectLibraries.cmake")
+set(__ARDUINO_TOOLCHAIN_PREPROCESS        "${ARDUINO_TOOLCHAIN_DIR}/Scripts/Preprocess.cmake")
 
 list(APPEND CMAKE_CONFIGURE_DEPENDS # <------------------------------------- rerun CMake when helper scripts are changed
+    "${__ARDUINO_TOOLCHAIN_COLLECT_LIBRARIES}"
     "${__ARDUINO_TOOLCHAIN_PREPROCESS}")
 
 find_program( # <-------------------------------------------------------------------------------------- find android-cli
@@ -1015,7 +1168,10 @@ find_program( # <---------------------------------------------------------------
     [HKLM/SOFTWARE/Arduino CLI;InstallDir]
     "$ENV{PROGRAMFILES}/Arduino CLI")
 
-__arduino_find_properties(EXPANDED) # <-------------------------------------- collect properties and installed libraries
+__arduino_find_config() # <----------------------------------- collect configuration, properties and installed libraries
+__arduino_find_user_sketches_dirpath()
+__arduino_find_ide_libraries_dirpath()
+__arduino_find_properties(EXPANDED)
 __arduino_find_properties(UNEXPANDED)
 __arduino_find_libraries()
 
@@ -1075,7 +1231,8 @@ __arduino_run_hooks("recipe.hooks.prebuild")
 list( # <--------------------------------------------------------------------------------------- configure try_compile()
     APPEND CMAKE_TRY_COMPILE_PLATFORM_VARIABLES
     ARDUINO_BOARD                                                                                  # make it just work
-    __ARDUINO_PROPERTIES_EXPANDED_CACHE                                                            # make it MUCH faster
+    __ARDUINO_CLI_CONFIG_CACHE                                                                     # make it MUCH faster
+    __ARDUINO_PROPERTIES_EXPANDED_CACHE
     __ARDUINO_PROPERTIES_UNEXPANDED_CACHE
     __ARDUINO_INSTALLED_LIBRARIES_CACHE
     __ARDUINO_IMPORTED_TARGET_CACHE)

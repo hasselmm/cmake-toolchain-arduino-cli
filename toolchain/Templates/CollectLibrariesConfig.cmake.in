@@ -1,0 +1,4 @@
+set(COLLECT_LIBRARIES_CACHE     "${__ARDUINO_INSTALLED_LIBRARIES_CACHE}")
+set(COLLECT_LIBRARIES_OUTPUT    "${_required_libraries_include}")
+set(COLLECT_LIBRARIES_SOURCES   "${_preprocessed_sources_list}")
+set(COLLECT_LIBRARIES_TARGET    "${TARGET}")
