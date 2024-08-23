@@ -493,6 +493,10 @@ endfunction()
 # Internal utility functions that find Arduino components and configurations.
 # ======================================================================================================================
 
+set(__ARDUINO_CLI_CONFIG_DESCRIPTION            "Arduino CLI configuration")
+set(__ARDUINO_CLI_CONFIG_FILENAME               "config.json")
+set(__ARDUINO_CLI_CONFIG_COMMAND                 config dump --format=json)
+
 set(__ARDUINO_PROPERTIES_EXPANDED_DESCRIPTION   "expanded build properties")
 set(__ARDUINO_PROPERTIES_EXPANDED_FILENAME      "properties-expanded.txt")
 set(__ARDUINO_PROPERTIES_EXPANDED_COMMAND        board details "--fqbn=${ARDUINO_BOARD}" --format=text --show-properties=expanded)
@@ -618,7 +622,8 @@ function(__arduino_find_properties MODE)
 endfunction()
 
 # ----------------------------------------------------------------------------------------------------------------------
-# Collects available libraries for the current board from arduino-cli.
+# Reads available libraries for the current board from `arduino-cli`
+# and stores the JSON in `__ARDUINO_INSTALLED_LIBRARIES`.
 # ----------------------------------------------------------------------------------------------------------------------
 function(__arduino_find_libraries)
     __arduino_read_cached_setting(INSTALLED_LIBRARIES)
@@ -634,6 +639,92 @@ function(__arduino_find_libraries)
 
     set(__ARDUINO_INSTALLED_LIBRARIES       "${_installed_libraries}"                PARENT_SCOPE)
     set(__ARDUINO_INSTALLED_LIBRARIES_CACHE "${__ARDUINO_INSTALLED_LIBRARIES_CACHE}" PARENT_SCOPE)
+endfunction()
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Reads configuration of `arduino-cli` and stores the JSON in `__ARDUINO_CLI_CONFIG`.
+# ----------------------------------------------------------------------------------------------------------------------
+function(__arduino_find_config)
+    __arduino_read_cached_setting(CLI_CONFIG)
+
+    set(__ARDUINO_CLI_CONFIG        "${__ARDUINO_CLI_CONFIG}"       PARENT_SCOPE)
+    set(__ARDUINO_CLI_CONFIG_CACHE  "${__ARDUINO_CLI_CONFIG_CACHE}" PARENT_SCOPE)
+endfunction()
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Finds and verifies the location of user sketches.
+# ----------------------------------------------------------------------------------------------------------------------
+function(__arduino_find_user_sketches_dirpath)
+    string(
+        JSON _user_sketches_dirpath ERROR_VARIABLE _error
+        GET "${__ARDUINO_CLI_CONFIG}" config directories user)
+
+    if (NOT _error AND _user_sketches_dirpath)
+        cmake_path(ABSOLUTE_PATH _user_sketches_dirpath NORMALIZE)
+
+        if (NOT IS_DIRECTORY "${_user_sketches_dirpath}")
+            set(_error_message
+                "Your arduino-cli is configured to use \"${_user_sketches_dirpath}\" "
+                "for user sketches and libraries, but this directory does not exist.")
+        endif()
+    else()
+        set(_error_message "Your arduino-cli doesn't know where to find user sketches and libraries.")
+    endif()
+
+    if (_error_message)
+        list(APPEND _error_message
+            "\nYOUR BUILDS MIGHT FAIL!\nPlease consider running `arduino-cli config set "
+            "directories.user PATH-TO-YOUR-SKETCHES` to address this issue.")
+
+        if (DEFINED ENV{USERPROFILE})
+            list(APPEND _error_message "\nA typical path would be: \"$ENV{USERPROFILE}\\Arduino\"")
+        elseif (DEFINED ENV{HOME})
+            list(APPEND _error_message "\nA typical path would be: \"$ENV{HOME}/Arduino\"")
+        endif()
+
+        message(WARNING ${_error_message})
+        set(_user_sketches_dirpath NOTFOUND)
+    endif()
+
+    set(__ARDUINO_USER_SKETCHES_DIRPATH "${_user_sketches_dirpath}"     PARENT_SCOPE)
+endfunction()
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Finds and verifies the location of IDE libraries.
+# ----------------------------------------------------------------------------------------------------------------------
+function(__arduino_find_ide_libraries_dirpath)
+    string(
+        JSON _ide_libraries_dirpath ERROR_VARIABLE _error
+        GET "${__ARDUINO_CLI_CONFIG}" config directories builtin libraries)
+
+    if (NOT _error AND _ide_libraries_dirpath)
+        cmake_path(ABSOLUTE_PATH _ide_libraries_dirpath NORMALIZE)
+
+        if (NOT IS_DIRECTORY "${_ide_libraries_dirpath}")
+            set(_error_message
+                "Your arduino-cli is configured to use \"${_ide_libraries_dirpath}\" "
+                "for IDE provided libraries, but this directory does not exist.")
+        endif()
+    else()
+        set(_error_message "Your arduino-cli doesn't know where to find IDE provided libraries.")
+    endif()
+
+    if (_error_message)
+        list(APPEND _error_message
+            "\nYOUR BUILDS MIGHT FAIL!\nPlease consider running `arduino-cli config set "
+            "directories.builtin.libraries PATH-TO-YOUR-IDE-LIBRARIES` to address this issue.")
+
+        if (DEFINED ENV{LOCALAPPDATA})
+            list(APPEND _error_message "\nA typical path would be: \"$ENV{LOCALAPPDATA}\\Arduino15\\libraries\"")
+        elseif (DEFINED ENV{HOME})
+            list(APPEND _error_message "\nA typical path would be: \"$ENV{HOME}/.arduino15/libraries\"")
+        endif()
+
+        message(WARNING ${_error_message})
+        set(_user_sketches_dirpath NOTFOUND)
+    endif()
+
+    set(__ARDUINO_IDE_LIBRARIES_DIRPATH "${_ide_libraries_dirpath}"     PARENT_SCOPE)
 endfunction()
 
 # ======================================================================================================================
@@ -1019,7 +1110,10 @@ find_program( # <---------------------------------------------------------------
     [HKLM/SOFTWARE/Arduino CLI;InstallDir]
     "$ENV{PROGRAMFILES}/Arduino CLI")
 
-__arduino_find_properties(EXPANDED) # <-------------------------------------- collect properties and installed libraries
+__arduino_find_config() # <----------------------------------- collect configuration, properties and installed libraries
+__arduino_find_user_sketches_dirpath()
+__arduino_find_ide_libraries_dirpath()
+__arduino_find_properties(EXPANDED)
 __arduino_find_properties(UNEXPANDED)
 __arduino_find_libraries()
 
@@ -1079,7 +1173,8 @@ __arduino_run_hooks("recipe.hooks.prebuild")
 list( # <--------------------------------------------------------------------------------------- configure try_compile()
     APPEND CMAKE_TRY_COMPILE_PLATFORM_VARIABLES
     ARDUINO_BOARD                                                                                  # make it just work
-    __ARDUINO_PROPERTIES_EXPANDED_CACHE                                                            # make it MUCH faster
+    __ARDUINO_CLI_CONFIG_CACHE                                                                     # make it MUCH faster
+    __ARDUINO_PROPERTIES_EXPANDED_CACHE
     __ARDUINO_PROPERTIES_UNEXPANDED_CACHE
     __ARDUINO_INSTALLED_LIBRARIES_CACHE
     __ARDUINO_IMPORTED_TARGET_CACHE)
