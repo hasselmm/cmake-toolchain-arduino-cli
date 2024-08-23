@@ -70,6 +70,7 @@ jobs:
           paths: "**/test-results.xml"
 
       - name: Prepare upload of build artifacts
+        if:   always()
         run: |
           echo "platform=${{ inputs.platform }}".replace(":", "-") >> $env:GITHUB_ENV
 
